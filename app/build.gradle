@@ -59,3 +59,18 @@ dependencies {
     def tapsellPlus = "2.3.2"
     implementation("ir.tapsell.plus:tapsell-plus-sdk-android:$tapsellPlus")
 }
+
+// The Tapsell SDK pulls in an old kotlin-stdlib-jdk7/jdk8 (1.6.21) while
+// other dependencies pull the newer kotlin-stdlib (1.8.22). Since Kotlin
+// 1.8, the jdk7/jdk8 artifacts are thin shims over kotlin-stdlib, so mixing
+// versions produces duplicate classes at merge time. Forcing every Kotlin
+// stdlib artifact to the same version fixes the "Duplicate class kotlin...."
+// build failure.
+configurations.all {
+    resolutionStrategy {
+        force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+        force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
+        force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
+        force "org.jetbrains.kotlin:kotlin-stdlib-common:1.8.22"
+    }
+}
