@@ -1,1 +1,61 @@
+apply plugin: 'com.android.application'
 
+android {
+    namespace 'ir.hojoom.game'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "ir.hojoom.game"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("keystore/release.keystore")
+            storePassword "Hojoom@2026Key!"
+            keyAlias "hojoomkey"
+            keyPassword "Hojoom@2026Key!"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        viewBinding false
+    }
+
+    packagingOptions {
+        resources {
+            excludes += [
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/*.kotlin_module'
+            ]
+        }
+    }
+}
+
+dependencies {
+    implementation "androidx.appcompat:appcompat:1.7.0"
+    def tapsellPlus = "2.3.2"
+    implementation("ir.tapsell.plus:tapsell-plus-sdk-android:$tapsellPlus")
+}
