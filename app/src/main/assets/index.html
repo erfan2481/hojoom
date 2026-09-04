@@ -3474,13 +3474,13 @@ function switchModeTab(tab){
     document.getElementById('modeTab'+cap).classList.toggle('active',p===tab);
     document.getElementById('modePane'+cap).classList.toggle('active',p===tab);
   });
+  MusicManager.play(tab==='stage' ? MusicManager.keyForStageSelect() : MusicManager.keyForMode(tab));
 }
 function openModeScreen(tab){
   buildStageGrid();
   ['endless','timerush','siege','bossrush','goldrush'].forEach(buildModeCard);
-  switchModeTab(tab||'stage');
   showScreen('stages');
-  MusicManager.play(MusicManager.keyForStageSelect());
+  switchModeTab(tab||'stage');
 }
 
 function renderCasteIcon(canvas,key){
