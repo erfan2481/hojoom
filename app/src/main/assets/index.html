@@ -764,9 +764,9 @@ const MusicManager = {
   elKeys: [null, null],
   positions: {},
   activeIdx: 0,
-  current: null,
-  unlocked: false,
-  pendingKey: null,
+  current: null,      // key we *want* playing (survives failed attempts)
+  playingKey: null,    // key actually confirmed audible right now
+  reqSeq: 0,
 
   getVolume(){ return SAVE.settings.musicVolume!=null ? SAVE.settings.musicVolume : 0.55; },
   init(){
@@ -781,30 +781,36 @@ const MusicManager = {
         if(k) this.positions[k]=a.currentTime;
       });
     }
-    const unlock=()=>this.unlock();
-    document.addEventListener('pointerdown', unlock, {once:true});
-    document.addEventListener('keydown', unlock, {once:true});
-  },
-  unlock(){
-    if(this.unlocked) return;
-    this.unlocked=true;
-    if(this.pendingKey) this._start(this.pendingKey);
+    // Some WebView/Android combinations still refuse the very first
+    // audio.play() call even though autoplay is allowed. Rather than
+    // relying on a single one-shot "unlock" gesture (which may or may not
+    // land on a listened element), keep retrying on every interaction
+    // until playback of the intended track is actually confirmed.
+    const retry=()=>{
+      if(this.playingKey!==this.current && this.current) this._start(this.current);
+    };
+    document.addEventListener('pointerdown', retry);
+    document.addEventListener('touchstart', retry, {passive:true});
+    document.addEventListener('keydown', retry);
   },
   srcFor(key){ return this.folder+key+'.mp3'; },
   // Call this whenever the screen/mode/stage changes. Safe to call repeatedly
-  // with the same key - it will not restart a track that's already playing.
+  // with the same key - it will not restart a track that's already playing,
+  // but it WILL retry if that track never actually started.
   play(key){
-    if(!key || key===this.current) return;
+    if(!key) return;
     this.current=key;
     if(!SAVE.settings.music) return;
-    if(!this.unlocked){ this.pendingKey=key; return; }
+    if(key===this.playingKey) return;
     this._start(key);
   },
   _start(key){
+    const mySeq=++this.reqSeq;
     const nextIdx=1-this.activeIdx;
     const nextEl=this.els[nextIdx];
-    const prevEl=this.els[this.activeIdx];
-    const prevKey=this.elKeys[this.activeIdx];
+    const prevIdx=this.activeIdx;
+    const prevEl=this.els[prevIdx];
+    const prevKey=this.elKeys[prevIdx];
 
     // Remember exactly where the outgoing track was, so it can pick up
     // from there next time this same key is requested.
@@ -812,21 +818,31 @@ const MusicManager = {
 
     const startAt=this.positions[key]||0;
     this.elKeys[nextIdx]=key;
-    nextEl.src=this.srcFor(key);
+    if(nextEl.getAttribute('src')!==this.srcFor(key)) nextEl.src=this.srcFor(key);
     nextEl.volume=0;
 
-    const resume=()=>{
+    const attemptPlay=()=>{
+      // A newer play() request came in while we were waiting - drop this one.
+      if(mySeq!==this.reqSeq) return;
       try{ nextEl.currentTime=startAt; }catch(e){}
       const p=nextEl.play();
-      if(p && p.catch) p.catch(()=>{}); // ignore missing-file / autoplay errors
+      const onSuccess=()=>{
+        if(mySeq!==this.reqSeq) return;
+        this.playingKey=key;
+        this.activeIdx=nextIdx;
+        // Only silence the old track once the new one is confirmed playing,
+        // so a failed/slow-loading track never leaves the game in total silence.
+        this._fade(nextEl, this.getVolume(), this.fadeMs);
+        if(prevEl && prevEl!==nextEl && !prevEl.paused) this._fade(prevEl, 0, this.fadeMs, ()=>prevEl.pause());
+      };
+      if(p && p.then) p.then(onSuccess).catch(()=>{ /* blocked/missing file - the retry listener above will try again on the next tap */ });
+      else onSuccess();
     };
-    // currentTime can only be set reliably once metadata is loaded.
-    if(nextEl.readyState>=1) resume();
-    else nextEl.addEventListener('loadedmetadata', resume, {once:true});
-
-    this._fade(nextEl, this.getVolume(), this.fadeMs);
-    if(prevEl && !prevEl.paused) this._fade(prevEl, 0, this.fadeMs, ()=>prevEl.pause());
-    this.activeIdx=nextIdx;
+    if(nextEl.readyState>=2) attemptPlay();
+    else{
+      nextEl.addEventListener('canplay', attemptPlay, {once:true});
+      nextEl.addEventListener('error', ()=>{}, {once:true});
+    }
   },
   _fade(el, target, ms, done){
     const start=el.volume, t0=performance.now();
@@ -842,8 +858,9 @@ const MusicManager = {
     SAVE.settings.music=on; persist();
     if(!on){
       this.els.forEach(a=>{ if(!a.paused) a.pause(); });
+      this.playingKey=null;
     } else if(this.current){
-      const k=this.current; this.current=null; this.play(k);
+      const k=this.current; this.playingKey=null; this.play(k);
     }
   },
   // Live volume update while the player drags the slider - applies instantly
