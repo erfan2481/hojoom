@@ -953,8 +953,8 @@ function playUnitHitSound(){
   const now=performance.now();
   if(now-lastUnitHitSnd>110){ lastUnitHitSnd=now; Audio_.play('hit'); }
 }
-function dmgMult(){ return (1 + SAVE.upgrades.damageBoost*0.12) * (hasArtifact('ironArm')?1.15:1) * (hasArtifact('flameEdge')?1.10:1) * runBuffs.dmg; }
-function spdMult(){ return (1 + SAVE.upgrades.speedBoost*0.08) * (hasArtifact('windBoots')?1.12:1) * (hasArtifact('windWing')?1.10:1) * runBuffs.spd; }
+function dmgMult(){ return (1 + SAVE.upgrades.damageBoost*0.12) * (hasArtifact('ironArm')?1.15:1) * (hasArtifact('flameEdge')?1.10:1) * runBuffs.dmg * (typeof tempBuffs!=='undefined'&&tempBuffs.dmg>0?1.6:1); }
+function spdMult(){ return (1 + SAVE.upgrades.speedBoost*0.08) * (hasArtifact('windBoots')?1.12:1) * (hasArtifact('windWing')?1.10:1) * runBuffs.spd * (typeof tempBuffs!=='undefined'&&tempBuffs.spd>0?1.6:1); }
 function healthMult(){ return (1 + (SAVE.upgrades.healthBoost||0)*0.10) * (hasArtifact('soulPlate')?1.15:1); }
 
 /* =========================================================
@@ -2342,6 +2342,7 @@ class Stronghold{
   }
   takeDamage(a){
     if(this.destroyed) return false;
+    if(typeof tempBuffs!=='undefined' && tempBuffs.fortress>0) a*=1.5;
     this.health-=a; this.shake=0.12;
     if(this.health<=0){
       this.health=0; this.destroyed=true;
@@ -2899,6 +2900,148 @@ class CoinPickup{
 }
 
 /* =========================================================
+   POWERUPS - rare field pickups with a short, punchy effect.
+   Unlike coins these are scarce (one at a time, long random gap
+   between spawns) so finding one feels like a lucky moment.
+   ========================================================= */
+const POWERUP_TYPES={
+  swarmDouble:{
+    name:'دوبرابر شدن لشکر', duration:7, color1:'#DBC0F7', color2:'#8A5CC9',
+    drawIcon(ctx,r){
+      ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.moveTo(-r*0.55,-r*0.05); ctx.lineTo(-r*0.15,-r*0.55); ctx.lineTo(r*0.05,-r*0.05); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha=0.85;
+      ctx.beginPath(); ctx.moveTo(-r*0.05,r*0.05); ctx.lineTo(r*0.35,-r*0.45); ctx.lineTo(r*0.55,r*0.05); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha=1;
+    },
+    apply(x,y){
+      const cap=swarm.cap();
+      const room=cap-swarm.units.length;
+      const base=swarm.units.slice();
+      const n=Math.min(base.length, room);
+      for(let i=0;i<n;i++){
+        const src=base[i];
+        const u=new Unit(src.caste, src.x+(Math.random()-.5)*16, src.y+(Math.random()-.5)*16);
+        u.temp=true; u.tempLife=7;
+        swarm.units.push(u);
+      }
+      floatingTexts.add(x,y-40,'لشکر دوبرابر شد!','#DBC0F7',18);
+      tempBuffs.swarmDoubleFlag=7; // purely informational, not used for math
+    }
+  },
+  speedSurge:{
+    name:'افزایش سرعت', duration:7, color1:'#9FF0E3', color2:'#2FA697',
+    drawIcon(ctx,r){
+      ctx.fillStyle='#fff';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.15,-r*0.55); ctx.lineTo(r*0.25,-r*0.08); ctx.lineTo(-r*0.02,-r*0.08);
+      ctx.lineTo(r*0.15,r*0.55); ctx.lineTo(-r*0.3,r*0.02); ctx.lineTo(r*0.02,r*0.02);
+      ctx.closePath(); ctx.fill();
+    },
+    apply(x,y){
+      tempBuffs.spd=7;
+      floatingTexts.add(x,y-40,'سرعت لشکر بالا رفت!','#9FF0E3',18);
+    }
+  },
+  fullHeal:{
+    name:'شفای کامل', duration:0, color1:'#F7C6E0', color2:'#E8495A',
+    drawIcon(ctx,r){
+      ctx.fillStyle='#fff';
+      ctx.fillRect(-r*0.14,-r*0.5,r*0.28,r);
+      ctx.fillRect(-r*0.5,-r*0.14,r,r*0.28);
+    },
+    apply(x,y){
+      for(const u of swarm.units) u.health=CASTES[u.caste].health*healthMult();
+      floatingTexts.add(x,y-40,'جان لشکر پر شد!','#F7C6E0',18);
+    }
+  },
+  damageSurge:{
+    name:'طوفان ضربه', duration:7, color1:'#FFC49A',color2:'#FF5A3C',
+    drawIcon(ctx,r){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(1.5,r*0.14); ctx.lineCap='round';
+      for(let i=0;i<6;i++){
+        const a=i/6*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*r*0.18, Math.sin(a)*r*0.18);
+        ctx.lineTo(Math.cos(a)*r*0.55, Math.sin(a)*r*0.55);
+        ctx.stroke();
+      }
+    },
+    apply(x,y){
+      tempBuffs.dmg=7;
+      floatingTexts.add(x,y-40,'قدرت ضربه‌ی لشکر اوج گرفت!','#FF5A3C',18);
+    }
+  },
+  coinMagnet:{
+    name:'آهنربای سکه', duration:7, color1:'#FFF0A0', color2:'#F2C230',
+    drawIcon(ctx,r){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(2,r*0.22); ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(0,r*0.05,r*0.45,Math.PI*0.15,Math.PI*0.85); ctx.stroke();
+      ctx.fillStyle='#fff';
+      ctx.fillRect(-r*0.55,-r*0.05,r*0.2,r*0.35);
+      ctx.fillRect(r*0.35,-r*0.05,r*0.2,r*0.35);
+    },
+    apply(x,y){
+      tempBuffs.magnet=7;
+      floatingTexts.add(x,y-40,'همه‌ی سکه‌ها جذب شدن!','#F2C230',18);
+    }
+  },
+  fortressCrack:{
+    name:'ضعف دژ دشمن', duration:7, color1:'#AFC7FA', color2:'#5B8DEF',
+    drawIcon(ctx,r){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(1.5,r*0.13); ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(0,-r*0.55); ctx.lineTo(r*0.5,0); ctx.lineTo(0,r*0.55); ctx.lineTo(-r*0.5,0); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-r*0.1,-r*0.3); ctx.lineTo(r*0.12,-r*0.02); ctx.lineTo(-r*0.06,r*0.15); ctx.lineTo(r*0.18,r*0.42);
+      ctx.stroke();
+    },
+    apply(x,y){
+      tempBuffs.fortress=7;
+      floatingTexts.add(x,y-40,'دژهای دشمن آسیب‌پذیرتر شدن!','#5B8DEF',18);
+    }
+  }
+};
+const POWERUP_ORDER=Object.keys(POWERUP_TYPES);
+
+class PowerupPickup{
+  constructor(x,y,type){
+    this.x=x; this.y=y; this.type=type; this.collected=false;
+    this.phase=Math.random()*Math.PI*2; this.r=15; this.life=10; this.spin=0;
+  }
+  draw(ctx){
+    if(this.collected) return;
+    const def=POWERUP_TYPES[this.type];
+    this.phase+=0.07; this.spin+=0.014;
+    const pulse=1+Math.sin(this.phase)*0.14;
+    const fade=this.life<2.5? Math.max(0,this.life/2.5) : 1;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.globalAlpha=fade;
+    if(QualityManager.settings().glow){ ctx.shadowColor=def.color2; ctx.shadowBlur=18; }
+    // outer glow ring
+    const g=ctx.createRadialGradient(0,0,0,0,0,this.r*pulse*2.1);
+    g.addColorStop(0,def.color1); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(0,0,this.r*pulse*2.1,0,Math.PI*2); ctx.fill();
+    // slowly-rotating dashed rarity ring
+    ctx.rotate(this.spin);
+    ctx.strokeStyle=def.color1; ctx.lineWidth=2; ctx.setLineDash([5,5]);
+    ctx.beginPath(); ctx.arc(0,0,this.r*pulse*1.45,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.rotate(-this.spin);
+    // solid core disc + icon glyph
+    ctx.fillStyle=def.color2;
+    ctx.beginPath(); ctx.arc(0,0,this.r*pulse,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.arc(0,0,this.r*pulse,0,Math.PI*2); ctx.stroke();
+    def.drawIcon(ctx,this.r*pulse);
+    ctx.restore();
+  }
+}
+
+/* =========================================================
    BACKDROP - the real uploaded galaxy photo, slowly panned/zoomed
    (a "Ken Burns" effect) so it stays alive without ever looking
    different from the original picture.
@@ -2948,6 +3091,8 @@ let goldRushTimer=0, goldRushEarned=0, goldRushNodeTimer=0;
 let comboCount=0, comboTimer=0, swarmMilestone=0;
 let tutorialIdx=0, tutorialPendingStart=null;
 let runBuffs={dmg:1,spd:1,cap:0};
+let powerups=[], powerupSpawnTimer=rand(14,20);
+let tempBuffs={spd:0,dmg:0,magnet:0,fortress:0};
 let running=false, paused=false;
 let lastTime=0, fpsSampleTime=0, fpsFrames=0;
 let touching=false;
@@ -2978,6 +3123,8 @@ function startRun(mode, idx){
   bossRushRound=0;
   goldRushTimer=70; goldRushEarned=0; goldRushNodeTimer=2;
   runBuffs={dmg:1,spd:1,cap:0};
+  powerups=[]; powerupSpawnTimer=rand(14,20);
+  tempBuffs={spd:0,dmg:0,magnet:0,fortress:0};
   comboCount=0; comboTimer=0; swarmMilestone=0;
 
   let stageIsBoss=false;
@@ -3191,8 +3338,9 @@ function update(dt){
     if(c.collected) continue;
     c.life-=dt;
     if(c.life<=0){ c.collected=true; continue; }
+    const magnetActive=tempBuffs.magnet>0;
     for(const u of swarm.units){
-      if(Math.hypot(u.x-c.x,u.y-c.y)<CASTES[u.caste].size+c.r+4){
+      if(magnetActive || Math.hypot(u.x-c.x,u.y-c.y)<CASTES[u.caste].size+c.r+4){
         c.collected=true;
         const amt=Math.round(c.amount*coinMult());
         SAVE.currency+=amt; if(currentMode==='goldrush') goldRushEarned+=amt; persist();
@@ -3203,6 +3351,43 @@ function update(dt){
     }
   }
   if(coins.length>12) coins=coins.filter(c=>!c.collected);
+
+  // آیتم‌های نادر قدرت - یکی‌یکی، با فاصله‌ی نسبتاً طولانی و تصادفی بین ظاهرشدن‌ها
+  powerupSpawnTimer-=dt;
+  if(powerupSpawnTimer<=0 && !powerups.some(p=>!p.collected)){
+    const type=POWERUP_ORDER[Math.floor(Math.random()*POWERUP_ORDER.length)];
+    powerups.push(new PowerupPickup(rand(W*0.16,W*0.84), rand(H*0.14,H*0.6), type));
+    powerupSpawnTimer=rand(24,38);
+  }
+  for(const p of powerups){
+    if(p.collected) continue;
+    p.life-=dt;
+    if(p.life<=0){ p.collected=true; continue; }
+    for(const u of swarm.units){
+      if(Math.hypot(u.x-p.x,u.y-p.y)<CASTES[u.caste].size+p.r+4){
+        p.collected=true;
+        POWERUP_TYPES[p.type].apply(p.x,p.y);
+        particles.emit(p.x,p.y,POWERUP_TYPES[p.type].color1,22,4,.9,3);
+        shockwaves.add(p.x,p.y,POWERUP_TYPES[p.type].color1,90);
+        Audio_.play('win'); vibrate(20);
+        break;
+      }
+    }
+  }
+  if(powerups.length>3) powerups=powerups.filter(p=>!p.collected);
+
+  // شمارش معکوس اثرهای موقت آیتم‌های قدرت
+  for(const k of ['spd','dmg','magnet','fortress']){
+    if(tempBuffs[k]>0) tempBuffs[k]=Math.max(0,tempBuffs[k]-dt);
+  }
+  // واحدهای موقتی (مثلاً از دوبرابر شدن لشکر) بعد از اتمام زمانشون محو می‌شوند
+  for(let i=swarm.units.length-1;i>=0;i--){
+    const u=swarm.units[i];
+    if(u.temp){
+      u.tempLife-=dt;
+      if(u.tempLife<=0) swarm.units.splice(i,1);
+    }
+  }
 
   let allDestroyed=true;
   for(const s of strongholds){
@@ -3368,6 +3553,7 @@ function draw(t){
   if(backdrop) backdrop.draw(ctx,t);
   for(const n of nodes) n.draw(ctx);
   for(const c of coins) c.draw(ctx);
+  for(const p of powerups) p.draw(ctx);
   for(const s of strongholds) s.draw(ctx);
   for(const et of engineerTurrets) et.draw(ctx);
   if(swarm) swarm.draw(ctx);
