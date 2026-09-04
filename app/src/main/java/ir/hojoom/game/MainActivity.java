@@ -1,6 +1,9 @@
 package ir.hojoom.game;
 
 import android.app.Activity;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -38,6 +41,17 @@ public class MainActivity extends Activity {
     private volatile boolean interstitialRequestInFlight = false;
     private long lastAdShownAt = 0L;
 
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest; // API 26+
+    private final AudioManager.OnAudioFocusChangeListener audioFocusListener = focusChange -> {
+        // Whatever transiently took focus (a call, another app's sound,
+        // the ad) has let go - bring the music back immediately instead
+        // of waiting for the next window-focus/visibility event.
+        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+            resumeGameMusic();
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -64,7 +78,29 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new AdsBridge(), "AndroidAds");
         webView.loadUrl("file:///android_asset/index.html");
 
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        requestAudioFocus();
+
         initTapsell();
+    }
+
+    private void requestAudioFocus() {
+        if (audioManager == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build();
+            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener(audioFocusListener)
+                    .build();
+            audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            //noinspection deprecation
+            audioManager.requestAudioFocus(audioFocusListener,
+                    AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        }
     }
 
     private void initTapsell() {
@@ -196,6 +232,14 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (webView != null) {
             webView.destroy();
+        }
+        if (audioManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && audioFocusRequest != null) {
+                audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            } else {
+                //noinspection deprecation
+                audioManager.abandonAudioFocus(audioFocusListener);
+            }
         }
         super.onDestroy();
     }
