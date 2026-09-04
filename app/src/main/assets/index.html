@@ -2951,9 +2951,12 @@ const POWERUP_TYPES={
       ctx.fillRect(-r*0.5,-r*0.14,r,r*0.28);
     },
     apply(x,y){
-      for(const u of swarm.units) u.health=CASTES[u.caste].health*healthMult();
-      floatingTexts.add(x,y-40,'جان لشکر پر شد!','#F7C6E0',18);
-    }
+  for(const u of swarm.units){
+    const maxHealth = CASTES[u.caste].health * healthMult();
+    u.health = Math.min(maxHealth, u.health + maxHealth * 0.25);
+   }
+  floatingTexts.add(x,y-40,'۲۵٪ از جان لشکر بازیابی شد','#F7C6E0',18);
+ }
   },
   damageSurge:{
     name:'طوفان ضربه', duration:7, color1:'#FFC49A',color2:'#FF5A3C',
