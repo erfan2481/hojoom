@@ -125,13 +125,29 @@ public class MainActivity extends Activity {
             @Override
             public void onClosed(TapsellPlusAdModel tapsellPlusAdModel) {
                 super.onClosed(tapsellPlusAdModel);
+                resumeGameMusic();
                 preloadInterstitial();
             }
 
             @Override
             public void onError(TapsellPlusErrorModel tapsellPlusErrorModel) {
                 super.onError(tapsellPlusErrorModel);
+                resumeGameMusic();
                 preloadInterstitial();
+            }
+        });
+    }
+
+    /**
+     * Showing the ad hands Android's audio focus to the ad activity, which
+     * pauses the game's background music. Tell the WebView page to resume
+     * it once we're back.
+     */
+    private void resumeGameMusic() {
+        runOnUiThread(() -> {
+            if (webView != null) {
+                webView.evaluateJavascript(
+                        "if(window.MusicManager) MusicManager.resumeIfPaused();", null);
             }
         });
     }
@@ -161,7 +177,10 @@ public class MainActivity extends Activity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) applyImmersiveMode();
+        if (hasFocus) {
+            applyImmersiveMode();
+            resumeGameMusic();
+        }
     }
 
     @Override
