@@ -135,6 +135,14 @@ body{color:var(--text);position:fixed;inset:0;overscroll-behavior:none;}
 .q-pill{padding:.5em 1em;border-radius:100px;background:rgba(255,255,255,.05);border:1px solid transparent;font-size:.8rem;font-weight:600;}
 .q-pill.active{background:rgba(77,216,196,.15);border-color:var(--scout);color:var(--scout-light);}
 
+.volume-row{padding:.5em 0 1em;border-bottom:1px solid var(--panel-border);}
+.volume-row-head{display:flex;align-items:center;justify-content:space-between;padding:.4em 0 .6em;}
+.volume-value{font-size:.8rem;font-weight:700;color:var(--scout-light);min-width:2.6em;text-align:left;}
+.volume-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:100px;background:rgba(255,255,255,.1);outline:none;margin:0;}
+.volume-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--scout),var(--spitter));box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer;}
+.volume-slider::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--scout),var(--spitter));box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer;}
+.volume-slider:disabled{opacity:.35;}
+
 .result-stat-row{display:flex;justify-content:space-between;padding:.6em 0;font-size:.92rem;border-bottom:1px solid var(--panel-border);}
 .result-stat-row:last-of-type{border-bottom:none;}
 .result-stat-val{font-weight:700;color:var(--gold);}
@@ -249,17 +257,44 @@ body{color:var(--text);position:fixed;inset:0;overscroll-behavior:none;}
     <div class="card">
       <button class="close-x" id="btnSettingsClose">✕</button>
       <div class="card-title">تنظیمات</div>
+
       <div class="setting-row">
         <div class="setting-label">جلوه‌های صوتی</div>
         <div class="toggle" id="toggleSound"><div class="toggle-knob"></div></div>
       </div>
+      <div class="volume-row">
+        <div class="volume-row-head">
+          <div class="setting-sub">میزان صدای جلوه‌ها</div>
+          <div class="volume-value" id="sfxVolumeValue">۱۰۰٪</div>
+        </div>
+        <input type="range" class="volume-slider" id="sfxVolumeSlider" min="0" max="100" step="5" value="100">
+      </div>
+
       <div class="setting-row">
         <div class="setting-label">موزیک پس‌زمینه</div>
         <div class="toggle" id="toggleMusic"><div class="toggle-knob"></div></div>
       </div>
-      <div class="setting-row" style="border-bottom:none;">
+      <div class="volume-row">
+        <div class="volume-row-head">
+          <div class="setting-sub">میزان صدای موزیک</div>
+          <div class="volume-value" id="musicVolumeValue">۵۵٪</div>
+        </div>
+        <input type="range" class="volume-slider" id="musicVolumeSlider" min="0" max="100" step="5" value="55">
+      </div>
+
+      <div class="setting-row">
         <div class="setting-label">لرزش</div>
         <div class="toggle" id="toggleVibrate"><div class="toggle-knob"></div></div>
+      </div>
+
+      <div class="setting-row" style="border-bottom:none;padding-bottom:.3em;">
+        <div class="setting-label">کیفیت گرافیک</div>
+      </div>
+      <div class="quality-pills" style="border-bottom:none;margin-bottom:0;">
+        <div class="q-pill" id="qPillAuto" data-q="auto">خودکار</div>
+        <div class="q-pill" id="qPillLow" data-q="low">کم</div>
+        <div class="q-pill" id="qPillMedium" data-q="medium">متوسط</div>
+        <div class="q-pill" id="qPillHigh" data-q="high">زیاد</div>
       </div>
     </div>
   </div>
@@ -590,7 +625,7 @@ const SaveManager = {
       stageStars:{}, unlockedCastes:['scout'],
       upgrades:{ swarmCap:0, damageBoost:0, speedBoost:0, healthBoost:0, luckBoost:0 },
       ownedArtifacts:[], ownedSkins:['default'], equippedSkin:'default',
-      settings:{ sound:true, vibrate:true, music:true, quality:'auto' },
+      settings:{ sound:true, vibrate:true, music:true, quality:'auto', sfxVolume:1, musicVolume:0.55 },
       seenHint:false, tutorialDone:false, tutorialTips:{node:false, stronghold:false},
       bestEndlessWave:0, bestTimeRush:0, bestSiegeWave:0, bestBossRush:0, bestGoldRush:0
     };
@@ -708,7 +743,7 @@ const Audio_ = {
     osc.type=wave;
     osc.frequency.setValueAtTime(freq,now);
     osc.frequency.exponentialRampToValueAtTime(Math.max(35,freq*(type==='win'?1.5:.4)),now+dur);
-    gain.gain.setValueAtTime(vol,now);
+    gain.gain.setValueAtTime(vol*(SAVE.settings.sfxVolume!=null?SAVE.settings.sfxVolume:1),now);
     gain.gain.exponentialRampToValueAtTime(.0001,now+dur);
     osc.start(now); osc.stop(now+dur+.02);
   }
@@ -725,7 +760,6 @@ const MUSIC_STAGE_CYCLE_GROUPS = 5;
 const MusicManager = {
   folder: 'music/',
   fadeMs: 900,
-  volume: 0.55,
   els: [null, null],
   elKeys: [null, null],
   positions: {},
@@ -734,6 +768,7 @@ const MusicManager = {
   unlocked: false,
   pendingKey: null,
 
+  getVolume(){ return SAVE.settings.musicVolume!=null ? SAVE.settings.musicVolume : 0.55; },
   init(){
     for(let i=0;i<2;i++){
       const a=new Audio();
@@ -789,7 +824,7 @@ const MusicManager = {
     if(nextEl.readyState>=1) resume();
     else nextEl.addEventListener('loadedmetadata', resume, {once:true});
 
-    this._fade(nextEl, this.volume, this.fadeMs);
+    this._fade(nextEl, this.getVolume(), this.fadeMs);
     if(prevEl && !prevEl.paused) this._fade(prevEl, 0, this.fadeMs, ()=>prevEl.pause());
     this.activeIdx=nextIdx;
   },
@@ -810,6 +845,14 @@ const MusicManager = {
     } else if(this.current){
       const k=this.current; this.current=null; this.play(k);
     }
+  },
+  // Live volume update while the player drags the slider - applies instantly
+  // to whichever track is currently playing, no fade.
+  setVolume(v){
+    v=Math.max(0,Math.min(1,v));
+    SAVE.settings.musicVolume=v; persist();
+    const activeEl=this.els[this.activeIdx];
+    if(activeEl && !activeEl.paused) activeEl.volume=v;
   },
 
   // --- which file name to use, based on where the player is ---
@@ -3622,6 +3665,22 @@ function refreshSettingsUI(){
   document.getElementById('toggleSound').classList.toggle('on',SAVE.settings.sound);
   document.getElementById('toggleMusic').classList.toggle('on',SAVE.settings.music);
   document.getElementById('toggleVibrate').classList.toggle('on',SAVE.settings.vibrate);
+
+  const sfxPct=Math.round((SAVE.settings.sfxVolume!=null?SAVE.settings.sfxVolume:1)*100);
+  const musicPct=Math.round((SAVE.settings.musicVolume!=null?SAVE.settings.musicVolume:0.55)*100);
+  const sfxSlider=document.getElementById('sfxVolumeSlider');
+  const musicSlider=document.getElementById('musicVolumeSlider');
+  sfxSlider.value=sfxPct;
+  musicSlider.value=musicPct;
+  document.getElementById('sfxVolumeValue').textContent=toFa(sfxPct)+'٪';
+  document.getElementById('musicVolumeValue').textContent=toFa(musicPct)+'٪';
+  sfxSlider.disabled=!SAVE.settings.sound;
+  musicSlider.disabled=!SAVE.settings.music;
+
+  const q=SAVE.settings.quality||'auto';
+  ['Auto','Low','Medium','High'].forEach(function(cap){
+    document.getElementById('qPill'+cap).classList.toggle('active', q===cap.toLowerCase());
+  });
 }
 
 /* =========================================================
@@ -3680,6 +3739,28 @@ document.getElementById('btnGameoverStages').addEventListener('click',function()
 document.getElementById('toggleSound').addEventListener('click',function(){ SAVE.settings.sound=!SAVE.settings.sound; persist(); refreshSettingsUI(); Audio_.play('click'); });
 document.getElementById('toggleMusic').addEventListener('click',function(){ MusicManager.setEnabled(!SAVE.settings.music); refreshSettingsUI(); Audio_.play('click'); });
 document.getElementById('toggleVibrate').addEventListener('click',function(){ SAVE.settings.vibrate=!SAVE.settings.vibrate; persist(); refreshSettingsUI(); vibrate(15); });
+
+document.getElementById('sfxVolumeSlider').addEventListener('input',function(){
+  const v=Number(this.value)/100;
+  SAVE.settings.sfxVolume=v; persist();
+  document.getElementById('sfxVolumeValue').textContent=toFa(this.value)+'٪';
+});
+document.getElementById('sfxVolumeSlider').addEventListener('change',function(){ Audio_.play('click'); });
+
+document.getElementById('musicVolumeSlider').addEventListener('input',function(){
+  const v=Number(this.value)/100;
+  MusicManager.setVolume(v);
+  document.getElementById('musicVolumeValue').textContent=toFa(this.value)+'٪';
+});
+
+['Auto','Low','Medium','High'].forEach(function(cap){
+  document.getElementById('qPill'+cap).addEventListener('click',function(){
+    const q=this.getAttribute('data-q');
+    if(q==='auto') QualityManager.setAuto(); else QualityManager.setManual(q);
+    refreshSettingsUI();
+    Audio_.play('click');
+  });
+});
 
 /* =========================================================
    INIT
