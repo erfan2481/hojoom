@@ -871,6 +871,17 @@ const MusicManager = {
     const activeEl=this.els[this.activeIdx];
     if(activeEl && !activeEl.paused) activeEl.volume=v;
   },
+  // Called from the native Android side right after an interstitial ad
+  // closes. Showing the ad makes Android hand audio focus to the ad
+  // activity, which pauses our <audio> element - this brings it back.
+  resumeIfPaused(){
+    if(!SAVE.settings.music) return;
+    const el=this.els[this.activeIdx];
+    if(el && el.paused){
+      const p=el.play();
+      if(p && p.catch) p.catch(()=>{ this.playingKey=null; if(this.current) this._start(this.current); });
+    }
+  },
 
   // --- which file name to use, based on where the player is ---
   keyForMenu(){ return 'menu'; },
