@@ -405,6 +405,7 @@ const CASTES = {
                 ability:'هنگام مرگ، یک برج موقت زمینی می\u200cسازد که چند ثانیه پیاپی به نزدیک\u200cترین دژ شلیک می\u200cکند' }
 };
 const CASTE_ORDER = ['scout','brute','spitter','guardian','ranger','shaman','juggernaut','vampire','bomber','shadow','commander','warden','howler','stormlord','ember','wellspring','fiend','engineer'];
+const MAX_AURA_RADIUS = Math.max(0, ...CASTE_ORDER.map(k=>CASTES[k].auraRadius||0));
 
 /* =========================================================
    ARTIFACTS - آرتیفکت‌های دائمی
@@ -486,7 +487,19 @@ const ENEMY_DEFS = {
              ability:'موج یخی که لشکر اطراف را برای لحظه\u200cای منجمد می\u200cکند' },
   magma:   { name:'گدازه\u200cافکن', color:'#F2532E', light:'#FFA36B', shape:'magma',   dmg:15, projSpd:170, fireMul:0.9,
              burnDps:11, burnTime:2.6, patchRadius:34, patchTime:3.4, magmaSpread:3, magmaCd:4.4,
-             ability:'میدانی از گدازه\u200cی مشتعل در اطراف خود می\u200cسازد' }
+             ability:'میدانی از گدازه\u200cی مشتعل در اطراف خود می\u200cسازد' },
+  sentinel:{ name:'دیده\u200cبان', color:'#B7C4DE', light:'#EAF0FC', shape:'sentinel', fireMul:1,
+             modules:[{type:'basicFire',dmg:27,projSpd:265,kind:'basic',rateMul:2.3}],
+             ability:'شلیک سنگین و کم\u200cتکرار اما بسیار دردناک از راه دور' },
+  arachnid_spitter:{ name:'عنکبوت تیرانداز', color:'#8A6FE0', light:'#D2C4FF', shape:'arachnid', fireMul:1,
+             modules:[{type:'spikeBurst',cd:3.6,count:6,dmg:8,projSpd:150}],
+             ability:'رگبار خاردار به\u200cصورت شعاعی در همه\u200cی جهت\u200cها' },
+  voidling:{ name:'کوچک\u200cزاد پوچی', color:'#4B4166', light:'#9C8CC7', shape:'voidMaw', fireMul:1,
+             modules:[{type:'groundSlam',cd:4.6,width:16,dmg:22,chargeTime:1.1}],
+             ability:'پس از نشانه\u200cروی، خط ضربه\u200cای مستقیمی رها می\u200cکند' },
+  carapace_turret:{ name:'برج\u200cلاک\u200cپشت', color:'#7FAE6E', light:'#CDEBC0', shape:'carapace', fireMul:1,
+             modules:[{type:'orbitingBlades',radius:50,dps:9,rotSpeed:2.2,count:4},{type:'basicFire',dmg:9,projSpd:170,kind:'basic',rateMul:1.6}],
+             ability:'تیغه\u200cهای چرخان اطراف خود به\u200cعلاوه\u200cی شلیک معمولی' }
 };
 const REGULAR_UNLOCK_ORDER = [
   { stage:0,  type:'turret'  },
@@ -504,7 +517,11 @@ const REGULAR_UNLOCK_ORDER = [
   { stage:45, type:'phantom' },
   { stage:52, type:'prism_array' },
   { stage:60, type:'glacier' },
-  { stage:68, type:'magma'   }
+  { stage:68, type:'magma'   },
+  { stage:80, type:'sentinel' },
+  { stage:98, type:'arachnid_spitter' },
+  { stage:120,type:'voidling' },
+  { stage:148,type:'carapace_turret' }
 ];
 const BOSS_DEFS = {
   warlord:    { name:'سردار محاصره', color:'#F2D680', light:'#FCE9B0', shape:'cube', dmg:30, projSpd:200,
@@ -521,11 +538,12 @@ const BOSS_DEFS = {
   hive_queen: { name:'ملکه\u200cی کندو', color:'#E0C24D', light:'#FBEBA0', shape:'hive', dmg:14, projSpd:170,
                 seekerTurn:6, seekerCount:5, seekerCd:2.1, pulseMaxR:260,
                 ability:'رگبار اسپورهای دنبال\u200cکننده\u200cی بی\u200cامان' },
-  glacier_colossus:{ name:'غول یخی', color:'#9FE8F7', light:'#EAFCFF', shape:'iceberg', dmg:18, projSpd:0,
-                freezeCd:9, freezeSpeed:230, freezeMaxR:340, freezeFactor:0.08, freezeTime:2.4, freezeChargeTime:1.3,
-                ability:'موج انجماد گسترده که تمام میدان را کند می\u200cکند' },
+  glacier_colossus:{ name:'غول یخی', color:'#9FE8F7', light:'#EAFCFF', shape:'iceberg', dmg:18, projSpd:175,
+                slowTime:2.4, slowFactor:0.4,
+                freezeCd:9, freezeSpeed:230, freezeMaxR:340, freezeFactor:0.08, freezeTime:2.4, freezeChargeTime:1.3, freezeDps:7,
+                ability:'گلوله\u200cهای یخی از راه دور به\u200cعلاوه\u200cی موج انجماد گسترده\u200cای که تمام میدان را کند می\u200cکند' },
   tesla_titan:{ name:'تایتان صاعقه', color:'#66E0F2', light:'#C4F7FF', shape:'coil', dmg:16, projSpd:190,
-                chainDmg:20, chainJumps:7, chainRadius:150, chainCd:2.6,
+                chainDmg:17, chainJumps:5, chainRadius:150, chainCd:3.6,
                 ability:'زنجیره\u200cی صاعقه\u200cی مرگبار میان واحدهای زیاد' },
   phantom_king:{ name:'شاه اشباح', color:'#8A7FE0', light:'#D2C8FF', shape:'wraith', dmg:20, projSpd:200,
                 cloakTime:2.6, visibleTime:2.2, decloakRadius:110, decloakDmg:34,
@@ -542,8 +560,117 @@ const BOSS_DEFS = {
   overlord:   { name:'فرمانروای اهریمنی', color:'#F2D680', light:'#FFF3C4', shape:'overlord', dmg:26, projSpd:220,
                 ability:'ترکیبی از تمام قدرت\u200cهای شناخته\u200cشده\u200cی دشمن' }
 };
-const BOSS_ORDER = ['warlord','toxic','laser_boss','hive_queen','glacier_colossus','tesla_titan','phantom_king','apex','railgun_dread','magma_behemoth','vortex_devourer','overlord'];
-const ENEMY_ALL = Object.assign({}, ENEMY_DEFS, BOSS_DEFS);
+
+/* ---------------------------------------------------------
+   PROCEDURAL BOSS ROSTER
+   The 12 bosses above are the original, hand-authored ones and
+   always appear first (stages 5-60) so nothing about an already-
+   familiar run changes. From stage 65 onward, every 5-stage boss
+   slot up through stage 250 gets one of 38 additional generated
+   "models" - each a unique combination of a detailed shape, a
+   color palette, and 1-3 abilities drawn from the same module
+   library the new modules above are built from. That's 50 unique
+   boss encounters total (5..250). Past 250 the game reuses that
+   pool at random (seeded per-stage so it's stable on replay) and
+   makes the repeat hit harder via eliteMul. Stage 500 gets its own
+   one-of-a-kind final model, never reused anywhere else.
+   --------------------------------------------------------- */
+function mulberry32(seed){
+  return function(){
+    seed|=0; seed=(seed+0x6D2B79F5)|0;
+    let t=Math.imul(seed^(seed>>>15),1|seed);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+function bossPalette(i){
+  const hue=Math.round((i*137.508)%360);
+  const sat=62+((i*7)%18);
+  const lig=48+((i*5)%14);
+  const litSat=Math.min(92,sat+10);
+  const litLig=Math.min(93,lig+34);
+  return { color:'hsl('+hue+','+sat+'%,'+lig+'%)', light:'hsl('+hue+','+litSat+'%,'+litLig+'%)' };
+}
+const MODULE_FACTORIES = {
+  basicFire:(s)=>({type:'basicFire', dmg:Math.round(15*s), projSpd:Math.round(185+s*7), kind:'basic'}),
+  sprayFire:(s)=>({type:'sprayFire', dmg:Math.round(9*s), projSpd:Math.round(195+s*6), count:3, spread:0.62, kind:'basic'}),
+  pulseRing:(s)=>({type:'pulseRing', cd:Math.max(4.8,8-s*0.35), speed:Math.round(210+s*6), dps:Math.round(11*s), maxR:Math.round(300+s*7), chargeTime:1.1}),
+  poisonNova:(s)=>({type:'poisonNova', cd:Math.max(5,8.5-s*0.3), speed:Math.round(180+s*5), dps:Math.round(8*s), maxR:Math.round(300+s*6), poisonTime:3.2, poisonDps:Math.round(6*s), chargeTime:1.1}),
+  freezeRing:(s)=>({type:'freezeRing', cd:Math.max(6.5,9-s*0.25), speed:Math.round(220+s*5), maxR:Math.round(300+s*6), factor:Math.max(0.08,0.3-s*0.02), time:2.2, chargeTime:1.2, dps:Math.round(4*s)}),
+  laserSweep:(s)=>({type:'laserSweep', cd:Math.max(5,7-s*0.25), duration:3.2, dps:Math.round(13*s), width:Math.round(14+s)}),
+  laserBeam:(s)=>({type:'laserBeam', chargeTime:1.3, beamTime:1.8, beamDps:Math.round(19*s), beamWidth:Math.round(12+s), cooldown:Math.max(1.6,2.6-s*0.15)}),
+  chainLightning:(s)=>({type:'chainLightning', cd:Math.max(2.2,3.2-s*0.12), dmg:Math.round(11*s), jumps:4+Math.min(3,Math.floor(s*0.6)), radius:120}),
+  seekerBarrage:(s)=>({type:'seekerBarrage', cd:2.8, dmg:Math.round(8*s), projSpd:Math.round(150+s*4), count:3+Math.min(3,Math.floor(s*0.5)), turn:5}),
+  vortexPull:(s)=>({type:'vortexPull', pullTime:2, pullRadius:Math.round(220+s*4), pullSpeed:Math.round(90+s*4), burstRadius:90, burstDmg:Math.round(22*s), restCd:3.4}),
+  mortarShells:(s)=>({type:'mortarShells', cd:Math.max(2,3-s*0.1), dmg:Math.round(19*s), radius:50, flightTime:1.1}),
+  railgunBeam:(s)=>({type:'railgunBeam', railDmg:Math.round(38*s), railWidth:Math.round(10+s*0.4), railCharge:1.7, railCd:Math.max(2.2,3.2-s*0.1)}),
+  magmaField:(s)=>({type:'magmaField', dmg:Math.round(11*s), projSpd:170, burnDps:Math.round(8*s), burnTime:2.6, patchRadius:34, patchTime:3.2, magmaSpread:3+Math.min(3,Math.floor(s*0.5)), magmaCd:3.6}),
+  cloakDecloak:(s)=>({type:'cloakDecloak', cloakTime:2.2, visibleTime:2.2, decloakRadius:80, decloakDmg:Math.round(21*s), dmg:Math.round(10*s), projSpd:190}),
+  spikeBurst:(s)=>({type:'spikeBurst', cd:Math.max(2.4,3.4-s*0.12), count:8+Math.min(6,Math.floor(s)), dmg:Math.round(8*s), projSpd:170}),
+  missileVolley:(s)=>({type:'missileVolley', cd:Math.max(2.8,4.2-s*0.14), count:3+Math.min(3,Math.floor(s*0.5)), dmg:Math.round(9*s), projSpd:150, turn:3.4}),
+  groundSlam:(s)=>({type:'groundSlam', cd:Math.max(2.6,4-s*0.12), width:Math.round(20+s*1.4), dmg:Math.round(25*s), chargeTime:0.95}),
+  orbitingBlades:(s)=>({type:'orbitingBlades', radius:Math.round(70+s*3), dps:Math.round(9*s), rotSpeed:1.6+s*0.06, count:5}),
+  summonAdds:(s)=>({type:'summonAdds', cd:5, maxAlive:2, types:['turret','spire','ice']}),
+  teleportStrike:(s)=>({type:'teleportStrike', cd:Math.max(4,5.5-s*0.1), dmg:Math.round(19*s), radius:90, chargeTime:0.6})
+};
+const SPECIAL_MODULE_KEYS=['pulseRing','poisonNova','freezeRing','laserSweep','laserBeam','chainLightning','seekerBarrage','vortexPull','mortarShells','railgunBeam','magmaField','cloakDecloak','spikeBurst','missileVolley','groundSlam','orbitingBlades','summonAdds','teleportStrike'];
+const BOSS_SHAPE_POOL=['sentinel','carapace','coreArmor','serpent','obelisk','seraph','kraken','golemCore','nebulaCore','warhulk','arachnid','phoenixCore','voidMaw','crownColossus','spiral','coil','wraith','magma','hive','facet','prism','iceberg'];
+const BOSS_NAME_A=['فرمانده','سردار','ارباب','ملکه','شاه','دژخیم','بلعنده','نگهبان','سایه','آتش\u200cبان','یخ\u200cبند','صاعقه\u200cزن','گدازه\u200cخوان','اهریمن','روح','تایتان','غول','اژدهای','شبح','دیو'];
+const BOSS_NAME_B=['سیاه','خونین','ابدی','فراموش\u200cشده','شکسته','نفرین\u200cشده','آهنین','بی\u200cرحم','خاموش','سوزان','یخ\u200cزده','طاعون\u200cزده','واپسین','ملعون','تباه','بی\u200cشکل','آسمانی','زیرزمینی','فرساینده','بی\u200cپایان'];
+const GENERATED_BOSS_COUNT=38;
+function buildBossRoster(){
+  const roster=[]; const usedNames=new Set();
+  for(let i=0;i<GENERATED_BOSS_COUNT;i++){
+    const rng=mulberry32(9001+i*97);
+    const pal=bossPalette(i+5);
+    const shape=BOSS_SHAPE_POOL[i%BOSS_SHAPE_POOL.length];
+    const scale=1+i*0.032;
+    const primaryType=(i%2===0)?'basicFire':'sprayFire';
+    const modules=[MODULE_FACTORIES[primaryType](scale)];
+    const specialCount=(i%3===2)?2:1;
+    const picked=[];
+    let guard=0;
+    while(picked.length<specialCount && guard<40){
+      guard++;
+      const key=SPECIAL_MODULE_KEYS[Math.floor(rng()*SPECIAL_MODULE_KEYS.length)];
+      if(!picked.includes(key)) picked.push(key);
+    }
+    for(const key of picked) modules.push(MODULE_FACTORIES[key](scale));
+    let name=BOSS_NAME_A[Math.floor(rng()*BOSS_NAME_A.length)]+' '+BOSS_NAME_B[Math.floor(rng()*BOSS_NAME_B.length)];
+    let tries=0;
+    while(usedNames.has(name) && tries<15){ name=BOSS_NAME_A[Math.floor(rng()*BOSS_NAME_A.length)]+' '+BOSS_NAME_B[Math.floor(rng()*BOSS_NAME_B.length)]; tries++; }
+    usedNames.add(name);
+    roster.push({ key:'genboss_'+i, name:name, color:pal.color, light:pal.light, shape:shape, modules:modules, ability:'ترکیبی منحصربه‌فرد از توانایی‌های هجومی' });
+  }
+  return roster;
+}
+const HAND_BOSS_ORDER=['warlord','toxic','laser_boss','hive_queen','glacier_colossus','tesla_titan','phantom_king','apex','railgun_dread','magma_behemoth','vortex_devourer','overlord'];
+const GENERATED_BOSS_ROSTER=buildBossRoster();
+const GENERATED_BOSS_DEFS={};
+for(const b of GENERATED_BOSS_ROSTER) GENERATED_BOSS_DEFS[b.key]=b;
+const FULL_BOSS_ROSTER_KEYS=HAND_BOSS_ORDER.concat(GENERATED_BOSS_ROSTER.map(b=>b.key));
+const FINAL_BOSS_KEY='voidsovereign';
+const FINAL_BOSS_DEF={
+  name:'فرمانروای ابدیت', color:'#F2D680', light:'#FFF9DE', shape:'sovereign',
+  modules:[
+    MODULE_FACTORIES.basicFire(3.4),
+    MODULE_FACTORIES.pulseRing(3.2),
+    MODULE_FACTORIES.chainLightning(3.0),
+    MODULE_FACTORIES.groundSlam(3.0),
+    MODULE_FACTORIES.summonAdds(2.4)
+  ],
+  ability:'فرمانروای نهایی: ترکیبی از موج ضربه، زنجیره‌ی صاعقه، ضربه‌ی زمین‌لرزان و احضار یاور، همه در یک نبرد'
+};
+function bossModelForStageIndex(i){
+  const bossOrdinal=Math.floor(i/5);
+  if(bossOrdinal<FULL_BOSS_ROSTER_KEYS.length) return { key:FULL_BOSS_ROSTER_KEYS[bossOrdinal], eliteMul:1 };
+  const rng=mulberry32(50021+i*13);
+  const pickIdx=Math.floor(rng()*FULL_BOSS_ROSTER_KEYS.length);
+  const overflow=bossOrdinal-FULL_BOSS_ROSTER_KEYS.length;
+  const eliteMul=Math.min(3.2, 1+(overflow+1)*0.16);
+  return { key:FULL_BOSS_ROSTER_KEYS[pickIdx], eliteMul:eliteMul };
+}
+const ENEMY_ALL = Object.assign({}, ENEMY_DEFS, BOSS_DEFS, GENERATED_BOSS_DEFS, { [FINAL_BOSS_KEY]: FINAL_BOSS_DEF });
 
 const STAGE_NAMES_BASE = [
   'مرز بیرونی','دروازه\u200cی شرقی','کمربند دفاعی','قلب دژ','برج نگهبان',
@@ -588,11 +715,12 @@ function genStages(){
     let bossName=null;
     if(isBoss){
       // Boss stages always contain a single, solitary boss stronghold.
-      const bossIdx=Math.floor(i/5);
       const isFinal=(n===STAGE_NAMES.length);
-      const etype=isFinal?'overlord':BOSS_ORDER[bossIdx%BOSS_ORDER.length];
+      let etype, eliteMul=1;
+      if(isFinal){ etype=FINAL_BOSS_KEY; }
+      else { const bm=bossModelForStageIndex(i); etype=bm.key; eliteMul=bm.eliteMul; }
       const bossHp=Math.round(baseHp*(2.8+i*0.06)*(isFinal?1.35:1));
-      strongholds.push({fx:.5, fy:.17, hp:bossHp, etype:etype, boss:true});
+      strongholds.push({fx:.5, fy:.17, hp:bossHp, etype:etype, boss:true, eliteMul:eliteMul});
       bossName=ENEMY_ALL[etype].name;
     } else {
       const avail=REGULAR_UNLOCK_ORDER.filter(u=>u.stage<=i).map(u=>u.type);
@@ -613,7 +741,7 @@ function genStages(){
 const STAGES = genStages();
 
 const SWARM_CAP_BASE = 60;
-const SWARM_HARD_CAP = 140;
+const SWARM_HARD_CAP = 200;
 
 /* =========================================================
    SAVE MANAGER
@@ -671,10 +799,10 @@ const GAME_MODES = {
    ========================================================= */
 const QualityManager = {
   tiers:{
-    potato: { dpr:1,   maxParticles:14,  detailUnits:8,   glow:false, bgLayers:1 },
-    low:    { dpr:1,   maxParticles:35,  detailUnits:22,  glow:false, bgLayers:1 },
-    medium: { dpr:1.5, maxParticles:90,  detailUnits:55,  glow:true,  bgLayers:2 },
-    high:   { dpr:2,   maxParticles:200, detailUnits:140, glow:true,  bgLayers:3 }
+    potato: { dpr:1,   maxParticles:10,  detailUnits:8,   glow:false, bgLayers:1 },
+    low:    { dpr:1,   maxParticles:30,  detailUnits:20,  glow:false, bgLayers:1 },
+    medium: { dpr:1.5, maxParticles:80,  detailUnits:70,  glow:true,  bgLayers:2 },
+    high:   { dpr:2,   maxParticles:200, detailUnits:200, glow:true,  bgLayers:3 }
   },
   order:['potato','low','medium','high'],
   current:'medium',
@@ -708,14 +836,32 @@ const QualityManager = {
     SAVE.settings.quality='auto'; persist();
     onResize();
   },
+  // Auto quality watches actual frame times and steps the tier up/down so the
+  // game stays smooth no matter what device it's running on - the "figure out
+  // for itself when it's about to lag and fix itself" behavior. A short recent
+  // window can trigger an immediate emergency drop (even mid-buffer) when fps
+  // craters, instead of waiting for the full averaging window; the normal
+  // window handles smaller, sustained dips, and stepping back up is kept slow
+  // and cautious so it doesn't bounce back and forth.
   recordFrame(fps){
     if(!this.auto) return;
     this.fpsBuf.push(fps);
     if(this.fpsBuf.length>90) this.fpsBuf.shift();
     const now=performance.now();
+    const idx=this.order.indexOf(this.current);
+
+    if(this.fpsBuf.length>=12){
+      const recent=this.fpsBuf.slice(-12);
+      const recentAvg=recent.reduce((a,b)=>a+b,0)/recent.length;
+      if(recentAvg<22 && idx>0 && now-this.lastAdjust>=900){
+        this.current=this.order[Math.max(0,idx-2)];
+        this.lastAdjust=now; onResize(); this.fpsBuf.length=0;
+        return;
+      }
+    }
+
     if(this.fpsBuf.length<45) return;
     const avg=this.fpsBuf.reduce((a,b)=>a+b,0)/this.fpsBuf.length;
-    const idx=this.order.indexOf(this.current);
     if(avg<45 && idx>0 && now-this.lastAdjust>=2200){ this.current=this.order[idx-1]; this.lastAdjust=now; onResize(); this.fpsBuf.length=0; }
     else if(avg>56 && idx<this.order.length-1 && now-this.lastAdjust>=4500){ this.current=this.order[idx+1]; this.lastAdjust=now; onResize(); this.fpsBuf.length=0; }
   }
@@ -1058,6 +1204,79 @@ const particles=new Particles();
 const shockwaves=new Shockwaves();
 const floatingTexts=new FloatingTexts();
 let camShake=0;
+
+/* =========================================================
+   SPATIAL GRID
+   Buckets swarm units into a uniform grid so every "who is near
+   this point" query (stronghold targeting, projectile hits,
+   healing, auras, status effects, pickups, chain-lightning jumps)
+   only checks the handful of units actually nearby instead of
+   scanning the whole swarm every time. Rebuilt once per frame -
+   this is the main reason a 150-200 unit swarm no longer bogs
+   down low-end phones: those queries used to be the true
+   performance cost, not the drawing.
+   ========================================================= */
+class SpatialGrid{
+  constructor(cellSize){ this.cellSize=cellSize||64; this.cells=new Map(); }
+  clear(){ this.cells.clear(); }
+  _key(cx,cy){ return cx*100003+cy; }
+  build(items){
+    this.clear();
+    const cs=this.cellSize;
+    for(let i=0;i<items.length;i++){
+      const it=items[i];
+      const cx=Math.floor(it.x/cs), cy=Math.floor(it.y/cs);
+      const k=this._key(cx,cy);
+      let arr=this.cells.get(k);
+      if(!arr){ arr=[]; this.cells.set(k,arr); }
+      arr.push(it);
+    }
+  }
+  forEach(x,y,r,fn){
+    const cs=this.cellSize;
+    const minCx=Math.floor((x-r)/cs), maxCx=Math.floor((x+r)/cs);
+    const minCy=Math.floor((y-r)/cs), maxCy=Math.floor((y+r)/cs);
+    const r2=r*r;
+    for(let cx=minCx;cx<=maxCx;cx++){
+      for(let cy=minCy;cy<=maxCy;cy++){
+        const arr=this.cells.get(this._key(cx,cy));
+        if(!arr) continue;
+        for(let i=0;i<arr.length;i++){
+          const it=arr[i];
+          const dx=it.x-x, dy=it.y-y, d2=dx*dx+dy*dy;
+          if(d2<=r2) fn(it,Math.sqrt(d2));
+        }
+      }
+    }
+  }
+  query(x,y,r){ const out=[]; this.forEach(x,y,r,(it)=>out.push(it)); return out; }
+  // Nearest item to (x,y) within maxR, or null. Expands the search ring
+  // outward so a sparse area doesn't force one giant full-radius scan.
+  nearest(x,y,maxR,excludeSet){
+    const cs=this.cellSize;
+    let ring=cs;
+    while(true){
+      let best=null,bestD2=Infinity;
+      const minCx=Math.floor((x-ring)/cs), maxCx=Math.floor((x+ring)/cs);
+      const minCy=Math.floor((y-ring)/cs), maxCy=Math.floor((y+ring)/cs);
+      for(let cx=minCx;cx<=maxCx;cx++){
+        for(let cy=minCy;cy<=maxCy;cy++){
+          const arr=this.cells.get(this._key(cx,cy));
+          if(!arr) continue;
+          for(let i=0;i<arr.length;i++){
+            const it=arr[i];
+            if(excludeSet && excludeSet.has(it)) continue;
+            const dx=it.x-x, dy=it.y-y, d2=dx*dx+dy*dy;
+            if(d2<bestD2 && d2<=ring*ring){ bestD2=d2; best=it; }
+          }
+        }
+      }
+      if(best) return best;
+      if(ring>=maxR) return null;
+      ring=Math.min(maxR,ring*2);
+    }
+  }
+}
 
 /* =========================================================
    SWARM
@@ -1630,25 +1849,49 @@ function handleUnitDeath(u){
 }
 
 class Swarm{
-  constructor(){ this.units=[]; this.tx=W/2; this.ty=H/2; }
+  constructor(){ this.units=[]; this.tx=W/2; this.ty=H/2; this.grid=new SpatialGrid(64); this.auraGrid=new SpatialGrid(96); }
   cap(){
     const raw = SWARM_CAP_BASE + SAVE.upgrades.swarmCap*15 + (hasArtifact('secondHeart')?20:0) + (hasArtifact('thirdHeart')?15:0) + (typeof runBuffs!=='undefined'?runBuffs.cap:0);
-    // Hard ceiling regardless of upgrades/artifacts/buffs: keeps per-frame unit-to-unit
-    // checks (healing, targeting) bounded so heavy late-game squads never bog the game down.
+    // Hard ceiling regardless of upgrades/artifacts/buffs. This used to also be the
+    // thing keeping per-frame unit-to-unit checks bounded; now that those checks go
+    // through the spatial grid below, this cap is purely a game-balance ceiling.
     return Math.min(raw, SWARM_HARD_CAP);
   }
   add(caste){ if(this.units.length<this.cap()) this.units.push(new Unit(caste,this.tx+(Math.random()-.5)*20,this.ty+(Math.random()-.5)*20)); }
   setTarget(x,y){ this.tx=x; this.ty=y; }
+  // O(1) removal: swap the removed unit with the last one instead of splice(),
+  // which has to shift every element after it. Safe to call mid-frame because
+  // _idx is refreshed at the top of every update() before any combat runs.
+  removeUnit(u){
+    let idx=u._idx;
+    if(idx==null || this.units[idx]!==u) idx=this.units.indexOf(u);
+    if(idx<0) return;
+    const last=this.units.length-1;
+    if(idx!==last){ this.units[idx]=this.units[last]; this.units[idx]._idx=idx; }
+    this.units.pop();
+  }
   update(dt){
     for(const u of this.units) u.update(dt,this.tx,this.ty);
+    this.grid.build(this.units);
+    for(let i=0;i<this.units.length;i++) this.units[i]._idx=i;
+    // Aura casters (commander/stormlord-type units) are usually a small slice of
+    // the swarm; bucketing just them once per frame lets every stronghold reuse
+    // the same small grid instead of each re-filtering the full swarm.
+    if(MAX_AURA_RADIUS>0) this.auraGrid.build(this.units.filter(u=>CASTES[u.caste].auraRadius));
+    else this.auraGrid.clear();
+    // Precompute each caste's current max HP once per frame instead of once per
+    // (healer x nearby-unit) pair - healthMult() re-checks artifacts every call.
+    const maxHpByCaste={};
+    for(const key in CASTES) maxHpByCaste[key]=CASTES[key].health*healthMult();
     for(const s of this.units){
       const sd=CASTES[s.caste];
       if(!sd.heal) continue;
       const heal=sd.heal*dt;
-      for(const u of this.units){
-        if(u===s || u.health>=CASTES[u.caste].health*healthMult()) continue;
-        if(Math.hypot(u.x-s.x,u.y-s.y)<55){ u.health=Math.min(CASTES[u.caste].health*healthMult(),u.health+heal); }
-      }
+      this.grid.forEach(s.x,s.y,55,(u)=>{
+        if(u===s) return;
+        const maxHp=maxHpByCaste[u.caste];
+        if(u.health<maxHp) u.health=Math.min(maxHp,u.health+heal);
+      });
     }
     this.tickStatus(dt);
   }
@@ -1664,59 +1907,66 @@ class Swarm{
       if(u.health<=0){
         particles.emit(u.x,u.y,CASTES[u.caste].color,7);
         handleUnitDeath(u);
-        this.units.splice(i,1);
+        this.removeUnit(u);
       } else if(Math.random()<0.25){
         particles.emit(u.x,u.y,u.poisonTime>0?'#7FE07A':'#F2884B',1,1.2,.25,1.4);
       }
     }
   }
   applyStatusNear(x,y,radius,kind,payload){
-    for(const u of this.units){
-      if(u.phased) continue;
-      if(Math.hypot(u.x-x,u.y-y)<radius){
-        if(kind==='slow'){ u.slowTime=Math.max(u.slowTime,payload.time); u.slowFactor=payload.factor; }
-        else if(kind==='poison'){ u.poisonTime=Math.max(u.poisonTime,payload.time); u.poisonDps=payload.dps; }
-        else if(kind==='burn'){ u.burnTime=Math.max(u.burnTime,payload.time); u.burnDps=payload.dps; }
-      }
-    }
+    this.grid.forEach(x,y,radius,(u)=>{
+      if(u.phased) return;
+      if(kind==='slow'){ u.slowTime=Math.max(u.slowTime,payload.time); u.slowFactor=payload.factor; }
+      else if(kind==='poison'){ u.poisonTime=Math.max(u.poisonTime,payload.time); u.poisonDps=payload.dps; }
+      else if(kind==='burn'){ u.burnTime=Math.max(u.burnTime,payload.time); u.burnDps=payload.dps; }
+    });
   }
   pullNear(cx,cy,radius,speed,dt){
-    for(const u of this.units){
-      const dx=cx-u.x, dy=cy-u.y, dist=Math.hypot(dx,dy);
-      if(dist<radius && dist>6){
+    this.grid.forEach(cx,cy,radius,(u,dist)=>{
+      if(dist>6){
+        const dx=cx-u.x, dy=cy-u.y;
         u.x+=(dx/dist)*speed*dt;
         u.y+=(dy/dist)*speed*dt;
       }
-    }
+    });
   }
   draw(ctx){
     const q=QualityManager.settings();
     this.units.forEach((u,i)=>u.draw(ctx, i<q.detailUnits));
   }
+  // Sum of aura damage bonuses from nearby aura-casters affecting unit u (excludes u itself).
+  auraBonusFor(u){
+    if(MAX_AURA_RADIUS<=0) return 0;
+    let bonus=0;
+    this.auraGrid.forEach(u.x,u.y,MAX_AURA_RADIUS,(c,dist)=>{
+      if(c===u) return;
+      const cd=CASTES[c.caste];
+      if(dist<cd.auraRadius) bonus+=cd.auraBoost;
+    });
+    return bonus;
+  }
   damageNear(x,y,radius,amount){
     let hitAny=false;
-    for(let i=this.units.length-1;i>=0;i--){
-      const u=this.units[i];
+    const hits=this.grid.query(x,y,radius);
+    for(const u of hits){
       if(u.phased) continue;
-      if(Math.hypot(u.x-x,u.y-y)<radius){
-        u.health-=amount;
-        hitAny=true;
-        if(u.health<=0){
-          particles.emit(u.x,u.y,CASTES[u.caste].color,7);
-          handleUnitDeath(u);
-          this.units.splice(i,1);
-        } else {
-          u.hitFlash=1;
-          particles.emit(u.x,u.y,'#ffffff',2,1.6,.25,1.6);
-        }
+      u.health-=amount;
+      hitAny=true;
+      if(u.health<=0){
+        particles.emit(u.x,u.y,CASTES[u.caste].color,7);
+        handleUnitDeath(u);
+        this.removeUnit(u);
+      } else {
+        u.hitFlash=1;
+        particles.emit(u.x,u.y,'#ffffff',2,1.6,.25,1.6);
       }
     }
     if(hitAny) playUnitHitSound();
   }
   ringDamage(cx,cy,ringRadius,band,amount,hitSet,gaps,gapHalfWidth){
     let hitAny=false;
-    for(let i=this.units.length-1;i>=0;i--){
-      const u=this.units[i];
+    const hits=this.grid.query(cx,cy,ringRadius+band);
+    for(const u of hits){
       if(hitSet.has(u) || u.phased) continue;
       const dist=Math.hypot(u.x-cx,u.y-cy);
       if(Math.abs(dist-ringRadius)<band){
@@ -1730,7 +1980,7 @@ class Swarm{
         if(u.health<=0){
           particles.emit(u.x,u.y,CASTES[u.caste].color,7);
           handleUnitDeath(u);
-          this.units.splice(i,1);
+          this.removeUnit(u);
         } else {
           u.hitFlash=1;
           particles.emit(u.x,u.y,'#ffffff',2,1.6,.25,1.6);
@@ -1745,7 +1995,7 @@ class Swarm{
    STRONGHOLD
    ========================================================= */
 class Stronghold{
-  constructor(x,y,maxHp,etype,boss,easeMul){
+  constructor(x,y,maxHp,etype,boss,easeMul,eliteMul){
     this.x=x;this.y=y;this.maxHealth=maxHp;this.health=maxHp;
     this.etype=etype||'turret';
     this.def=ENEMY_ALL[this.etype]||ENEMY_ALL.turret;
@@ -1753,6 +2003,7 @@ class Stronghold{
     this.range=this.boss?380:280; this.attackRadius=this.boss?56:42;
     this.fireCd=Math.random()*0.6;
     this.baseFireRate=(this.boss?0.95:1.15)*(this.def.fireMul||1)*(easeMul||1);
+    this.eliteMulInit=eliteMul||1;
     this.destroyed=false; this.shake=0; this.projectiles=[];
     this.hitFlash=0; this.hitSoundCd=0;
     this.pulsePhase=Math.random()*Math.PI*2;
@@ -1768,7 +2019,7 @@ class Stronghold{
     // hive / hive_queen
     this.seekerTimer=1+Math.random()*1.4;
     // tesla / tesla_titan
-    this.chainTimer=1.4+Math.random()*1.6; this.chainVisual=[]; this.chainVisualT=0;
+    this.chainTimer=1.4+Math.random()*1.6; this.chainVisual=[]; this.chainVisualT=0; this.chainCharging=false; this.chainChargeT=0; this.chainChargeDur=0.55;
     // mortar
     this.shells=[]; this.shellTimer=0.8+Math.random()*1.2;
     // railgun / railgun_dread
@@ -1779,7 +2030,17 @@ class Stronghold{
     this.freezeTimer=2+Math.random()*1.6; this.freezeActive=false; this.freezeCharging=false; this.freezeChargeT=0; this.freezeChargeDur=1.1; this.freezeRadius=0; this.freezeHit=null; this.freezeGaps=[];
     // magma / magma_behemoth
     this.magmaTimer=1.2+Math.random()*1.4;
+    // module-system extras (used by procedurally-generated bosses/enemies -
+    // see runModule() - harmless unused state for anything that doesn't use them)
+    this.spikeTimer=1+Math.random()*1.5;
+    this.missileTimer=2+Math.random()*2;
+    this.slamState='idle'; this.slamTimer=2+Math.random()*1.6; this.slamChargeT=0; this.slamChargeDur=0.9; this.slamAngle=0; this.slamProgress=0; this.slamHit=null; this.slamOX=0; this.slamOY=0;
+    this.bladeAngle=Math.random()*Math.PI*2; this.bladeTickCd=0;
+    this.summonTimer=3.5+Math.random()*2.5; this.summonedAdds=[];
+    this.teleState='idle'; this.teleTimer=3+Math.random()*2; this.teleChargeT=0; this.teleChargeDur=1; this.eliteMul=this.eliteMulInit||1;
   }
+  hasModule(type){ return !!(this.def.modules && this.def.modules.some(m=>m.type===type)); }
+  getModule(type){ return this.def.modules && this.def.modules.find(m=>m.type===type); }
   fireBasic(rate,nearby,dmg,spd,kind){
     if(this.fireCd<=0 && nearby.length>0){
       this.fireCd=rate;
@@ -1798,8 +2059,14 @@ class Stronghold{
   }
   damageBeam(swarm,angle,width,dpsAmount,length){
     const dirx=Math.cos(angle), diry=Math.sin(angle);
-    for(let i=swarm.units.length-1;i>=0;i--){
-      const u=swarm.units[i];
+    // A beam is a thin long rectangle, not a disc, so a plain radius query would
+    // either miss its tip or pull in far too much of the swarm. Query a circle
+    // that fully contains the rectangle (centered on its midpoint) and let the
+    // existing projection/perp math do the exact filtering.
+    const midX=this.x+dirx*length*0.5, midY=this.y+diry*length*0.5;
+    const boundR=Math.hypot(length*0.5,width)+4;
+    const hits=swarm.grid.query(midX,midY,boundR);
+    for(const u of hits){
       if(u.phased) continue;
       const rx=u.x-this.x, ry=u.y-this.y;
       const proj=rx*dirx+ry*diry;
@@ -1810,7 +2077,7 @@ class Stronghold{
         if(u.health<=0){
           particles.emit(u.x,u.y,CASTES[u.caste].color,7);
           handleUnitDeath(u);
-          swarm.units.splice(i,1);
+          swarm.removeUnit(u);
         } else {
           u.hitFlash=1;
           if(Math.random()<0.4) particles.emit(u.x,u.y,'#ffffff',1,1.4,.2,1.4);
@@ -1820,8 +2087,8 @@ class Stronghold{
   }
   novaRingPoison(swarm,ringRadius,band,amount,hitSet,poisonTime,poisonDps,gaps,gapHalfWidth){
     let hitAny=false;
-    for(let i=swarm.units.length-1;i>=0;i--){
-      const u=swarm.units[i];
+    const hits=swarm.grid.query(this.x,this.y,ringRadius+band);
+    for(const u of hits){
       if(hitSet.has(u) || u.phased) continue;
       const dist=Math.hypot(u.x-this.x,u.y-this.y);
       if(Math.abs(dist-ringRadius)<band){
@@ -1836,7 +2103,7 @@ class Stronghold{
         if(u.health<=0){
           particles.emit(u.x,u.y,CASTES[u.caste].color,7);
           handleUnitDeath(u);
-          swarm.units.splice(i,1);
+          swarm.removeUnit(u);
         } else {
           u.hitFlash=1;
           particles.emit(u.x,u.y,'#7FE07A',3,1.8,.3,1.8);
@@ -1845,8 +2112,8 @@ class Stronghold{
     }
     if(hitAny) playUnitHitSound();
   }
-  updateLaserRegular(dt,swarm,nearby){
-    const def=this.def;
+  updateLaserRegular(dt,swarm,nearby,defOverride){
+    const def=defOverride||this.def;
     if(this.laserState==='idle'){
       this.laserTimer-=dt;
       if(this.laserTimer<=0 && nearby.length>0){
@@ -1865,8 +2132,8 @@ class Stronghold{
       if(this.laserFireT<=0){ this.laserState='idle'; this.laserTimer=def.cooldown; }
     }
   }
-  updateVortex(dt,swarm,nearby){
-    const def=this.def;
+  updateVortex(dt,swarm,nearby,defOverride){
+    const def=defOverride||this.def;
     if(this.vortexState==='idle'){
       this.vortexTimer-=dt;
       this.fireBasic(this.baseFireRate,nearby,def.dmg,def.projSpd,'basic');
@@ -1896,35 +2163,46 @@ class Stronghold{
     }
   }
   updateChain(dt,swarm,cd,dmg,jumps,radius){
-    this.chainTimer-=dt;
-    this.chainVisualT=Math.max(0,this.chainVisualT-dt);
-    if(this.chainTimer<=0 && swarm.units.length>0){
-      this.chainTimer=cd;
-      let cx=this.x, cy=this.y;
-      const hit=new Set();
-      const pts=[{x:cx,y:cy}];
-      let hitAny=false;
-      for(let j=0;j<jumps;j++){
-        let best=null,bestD=radius;
-        for(const u of swarm.units){
-          if(hit.has(u) || u.phased) continue;
-          const d=Math.hypot(u.x-cx,u.y-cy);
-          if(d<bestD){ bestD=d; best=u; }
-        }
-        if(!best) break;
-        hit.add(best);
-        best.health-=dmg; best.hitFlash=1; hitAny=true;
-        particles.emit(best.x,best.y,'#C4F7FF',5,2,.35,1.8);
-        if(best.health<=0){
-          particles.emit(best.x,best.y,CASTES[best.caste].color,7);
-          handleUnitDeath(best);
-          const idx=swarm.units.indexOf(best); if(idx>=0) swarm.units.splice(idx,1);
-        }
-        pts.push({x:best.x,y:best.y});
-        cx=best.x; cy=best.y;
+    if(!this.chainCharging){
+      this.chainTimer-=dt;
+      this.chainVisualT=Math.max(0,this.chainVisualT-dt);
+      if(this.chainTimer<=0){
+        this.chainCharging=true; this.chainChargeT=this.chainChargeDur=0.55;
+        Audio_.play('click');
       }
-      if(hitAny){ playUnitHitSound(); camShake=Math.max(camShake,this.boss?7:3); }
-      if(pts.length>1){ this.chainVisual=pts; this.chainVisualT=0.22; }
+    } else {
+      this.chainChargeT-=dt;
+      if(Math.random()<0.5) particles.emit(this.x+(Math.random()-.5)*20,this.y+(Math.random()-.5)*20,'#C4F7FF',1,1.4,.2,1.2);
+      if(this.chainChargeT<=0){
+        this.chainCharging=false; this.chainTimer=cd;
+        if(swarm.units.length>0){
+          let cx=this.x, cy=this.y;
+          const hit=new Set();
+          const pts=[{x:cx,y:cy}];
+          let hitAny=false;
+          for(let j=0;j<jumps;j++){
+            // Phased (invisible) units must stay untargetable, so they get added to
+            // the exclude set up front only if phased - grid.nearest already skips
+            // anything in the exclude set, so we pass a combined check via a tiny
+            // wrapper set that also covers phased units lazily.
+            let best=swarm.grid.nearest(cx,cy,radius,hit);
+            while(best && best.phased){ hit.add(best); best=swarm.grid.nearest(cx,cy,radius,hit); }
+            if(!best) break;
+            hit.add(best);
+            best.health-=dmg; best.hitFlash=1; hitAny=true;
+            particles.emit(best.x,best.y,'#C4F7FF',5,2,.35,1.8);
+            if(best.health<=0){
+              particles.emit(best.x,best.y,CASTES[best.caste].color,7);
+              handleUnitDeath(best);
+              swarm.removeUnit(best);
+            }
+            pts.push({x:best.x,y:best.y});
+            cx=best.x; cy=best.y;
+          }
+          if(hitAny){ playUnitHitSound(); camShake=Math.max(camShake,this.boss?7:3); }
+          if(pts.length>1){ this.chainVisual=pts; this.chainVisualT=0.22; }
+        }
+      }
     }
   }
   updateMortarShells(dt,swarm,cd,dmg,radius,flightTime,nearby){
@@ -1989,7 +2267,7 @@ class Stronghold{
       }
     }
   }
-  updateFreezeRing(dt,swarm,cd,speed,maxR,factor,time,chargeTime){
+  updateFreezeRing(dt,swarm,cd,speed,maxR,factor,time,chargeTime,dps){
     if(!this.freezeActive && !this.freezeCharging){
       this.freezeTimer-=dt;
       if(this.freezeTimer<=0){
@@ -2006,7 +2284,8 @@ class Stronghold{
     if(this.freezeActive){
       this.freezeRadius+=dt*speed;
       let hitAny=false;
-      for(const u of swarm.units){
+      const hits=swarm.grid.query(this.x,this.y,this.freezeRadius+20);
+      for(const u of hits){
         if(this.freezeHit.has(u)) continue;
         const dist=Math.hypot(u.x-this.x,u.y-this.y);
         if(Math.abs(dist-this.freezeRadius)<20){
@@ -2014,6 +2293,14 @@ class Stronghold{
           if(angleInRingGaps(ang,this.freezeGaps)) continue;
           this.freezeHit.add(u);
           u.slowTime=Math.max(u.slowTime,time); u.slowFactor=factor;
+          if(dps>0){
+            u.health-=dps;
+            if(u.health<=0){
+              particles.emit(u.x,u.y,CASTES[u.caste].color,7);
+              handleUnitDeath(u);
+              swarm.removeUnit(u);
+            }
+          }
           hitAny=true;
           particles.emit(u.x,u.y,'#CFF3FF',3,1.6,.4,1.8);
         }
@@ -2165,7 +2452,8 @@ class Stronghold{
     } else if(this.currentPhase==='freeze' && this.freezeActive){
       this.freezeRadius+=dt*220;
       let hitAny=false;
-      for(const u of swarm.units){
+      const hits=swarm.grid.query(this.x,this.y,this.freezeRadius+20);
+      for(const u of hits){
         if(this.freezeHit.has(u)) continue;
         const dist=Math.hypot(u.x-this.x,u.y-this.y);
         if(Math.abs(dist-this.freezeRadius)<20){
@@ -2179,10 +2467,174 @@ class Stronghold{
       if(this.freezeRadius>320){ this.freezeActive=false; this.apexBusy=false; this.phaseTimer=2.2; }
     }
   }
+  /* ---------------------------------------------------------
+     MODULE SYSTEM - lets a boss/enemy def declare a `modules`
+     list (e.g. [{type:'basicFire',...},{type:'pulseRing',...}])
+     instead of needing a hand-written switch-case. Every module
+     type below just calls the SAME battle-tested ability methods
+     used by the original hand-authored enemies/bosses above, so
+     new content reuses proven behavior instead of duplicating it.
+     This is what makes it practical to have dozens of distinct
+     boss "models" without writing dozens of bespoke classes.
+     --------------------------------------------------------- */
+  sprayFire(rate,nearby,dmg,spd,count,spreadTotal,kind){
+    if(this.fireCd<=0 && nearby.length>0){
+      this.fireCd=rate;
+      const t=nearby[Math.floor(Math.random()*nearby.length)];
+      const base=Math.atan2(t.y-this.y,t.x-this.x);
+      const half=(spreadTotal==null?0.42:spreadTotal)/2;
+      for(let k=0;k<count;k++){
+        const off=count>1 ? -half+((spreadTotal==null?0.84:spreadTotal)*k/(count-1)) : 0;
+        const ang=base+off;
+        this.projectiles.push({x:this.x,y:this.y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:2.2,kind:kind||'basic',dmg:dmg});
+      }
+      Audio_.play('hit');
+    }
+  }
+  updateSpikeBurst(dt,cd,count,dmg,spd){
+    this.spikeTimer-=dt;
+    if(this.spikeTimer<=0){
+      this.spikeTimer=cd;
+      for(let k=0;k<count;k++){
+        const ang=(k/count)*Math.PI*2+Math.random()*0.15;
+        this.projectiles.push({x:this.x,y:this.y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:2.6,kind:'basic',dmg:dmg});
+      }
+      particles.emit(this.x,this.y,this.def.light,16,3.4,.5,2.4);
+      camShake=Math.max(camShake,this.boss?6:3);
+      Audio_.play('destroy');
+    }
+  }
+  updateMissileVolley(dt,cd,count,dmg,spd,turn){
+    this.missileTimer-=dt;
+    if(this.missileTimer<=0){
+      this.missileTimer=cd;
+      for(let k=0;k<count;k++){
+        const ang=Math.random()*Math.PI*2;
+        this.projectiles.push({x:this.x,y:this.y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:3.6,kind:'seeker',dmg:dmg,turn:turn||3.4});
+      }
+      Audio_.play('hit');
+    }
+  }
+  updateGroundSlam(dt,swarm,cd,width,dmg,length,chargeTime){
+    if(this.slamState==='idle'){
+      this.slamTimer-=dt;
+      if(this.slamTimer<=0){
+        this.slamState='charging'; this.slamChargeT=this.slamChargeDur=chargeTime||1.0;
+        let cx=this.x,cy=this.y+200;
+        if(swarm.units.length){ let sx=0,sy=0; for(const u of swarm.units){sx+=u.x;sy+=u.y;} cx=sx/swarm.units.length; cy=sy/swarm.units.length; }
+        this.slamAngle=Math.atan2(cy-this.y,cx-this.x);
+        Audio_.play('click');
+      }
+    } else if(this.slamState==='charging'){
+      this.slamChargeT-=dt;
+      if(this.slamChargeT<=0){
+        this.slamState='idle'; this.slamTimer=cd;
+        this.damageBeam(swarm,this.slamAngle,width,dmg,length||this.range*1.7);
+        this.slamProgress=0.28;
+        camShake=Math.max(camShake,this.boss?9:4); Audio_.play('destroy'); vibrate(this.boss?[20,20]:16);
+      }
+    }
+    if(this.slamProgress>0) this.slamProgress=Math.max(0,this.slamProgress-dt);
+  }
+  updateOrbitingBlades(dt,swarm,radius,dps,rotSpeed){
+    this.bladeAngle+=dt*(rotSpeed||1.6);
+    this.bladeTickCd-=dt;
+    if(this.bladeTickCd<=0){
+      this.bladeTickCd=0.15;
+      const hits=swarm.grid.query(this.x,this.y,radius+18);
+      for(const u of hits){
+        if(u.phased) continue;
+        const dist=Math.hypot(u.x-this.x,u.y-this.y);
+        if(Math.abs(dist-radius)<16){
+          u.health-=dps*0.15;
+          u.hitFlash=1;
+          if(u.health<=0){ particles.emit(u.x,u.y,CASTES[u.caste].color,7); handleUnitDeath(u); swarm.removeUnit(u); }
+          else if(Math.random()<0.5) particles.emit(u.x,u.y,'#ffffff',1,1.2,.2,1.3);
+        }
+      }
+    }
+  }
+  updateSummonAdds(dt,cd,maxAlive,types){
+    this.summonedAdds=this.summonedAdds.filter(s=>!s.destroyed);
+    this.summonTimer-=dt;
+    if(this.summonTimer<=0 && this.summonedAdds.length<maxAlive){
+      this.summonTimer=cd;
+      const etype=types[Math.floor(Math.random()*types.length)];
+      const ang=Math.random()*Math.PI*2, dist=70+Math.random()*40;
+      const sx=clamp(this.x+Math.cos(ang)*dist, W*0.08, W*0.92);
+      const sy=clamp(this.y+Math.sin(ang)*dist, H*0.08, H*0.7);
+      const hp=Math.max(18,Math.round(this.maxHealth*0.14));
+      const add=new Stronghold(sx,sy,hp,etype,false);
+      strongholds.push(add);
+      this.summonedAdds.push(add);
+      particles.emit(sx,sy,this.def.light,10,2.4,.4,2);
+      Audio_.play('click');
+    }
+  }
+  updateTeleportStrike(dt,swarm,cd,dmg,radius,chargeTime){
+    if(this.teleState==='idle'){
+      this.teleTimer-=dt;
+      if(this.teleTimer<=0 && swarm.units.length>0){
+        this.teleState='vanishing'; this.teleChargeT=this.teleChargeDur=chargeTime||0.6;
+        Audio_.play('click');
+      }
+    } else if(this.teleState==='vanishing'){
+      this.teleChargeT-=dt;
+      if(Math.random()<0.6) particles.emit(this.x,this.y,'#ffffff',2,2,.3,2);
+      if(this.teleChargeT<=0){
+        particles.emit(this.x,this.y,'#ffffff',14,3,.4,2.2);
+        let cx=this.x,cy=this.y;
+        if(swarm.units.length){ let sx=0,sy=0; for(const u of swarm.units){sx+=u.x;sy+=u.y;} cx=sx/swarm.units.length; cy=sy/swarm.units.length; }
+        this.x=clamp(cx+(Math.random()-.5)*90, W*0.12,W*0.88);
+        this.y=clamp(cy-100+(Math.random()-.5)*60, H*0.1,H*0.55);
+        this.teleState='arriving'; this.teleChargeT=this.teleChargeDur=0.3;
+      }
+    } else if(this.teleState==='arriving'){
+      this.teleChargeT-=dt;
+      if(this.teleChargeT<=0){
+        swarm.damageNear(this.x,this.y,radius,dmg);
+        particles.emit(this.x,this.y,this.def.light,20,4,.5,2.6);
+        shockwaves.add(this.x,this.y,this.def.color,radius*0.9);
+        camShake=Math.max(camShake,this.boss?9:4); Audio_.play('destroy');
+        this.teleState='idle'; this.teleTimer=cd;
+      }
+    }
+  }
+  runModule(m,dt,swarm,nearby,rate){
+    const em=Math.max(1,this.eliteMul||1);
+    const rr=(rate*(m.rateMul||1))/em;
+    const cdOf=(v)=> v==null?v:v/em;
+    switch(m.type){
+      case 'basicFire': this.fireBasic(rr,nearby,m.dmg,m.projSpd,m.kind||'basic'); break;
+      case 'sprayFire': this.sprayFire(rr,nearby,m.dmg,m.projSpd,m.count||3,m.spread,m.kind); break;
+      case 'pulseRing': this.updatePulse(dt,swarm,cdOf(m.cd),m.speed,m.dps,m.maxR,m.chargeTime); break;
+      case 'poisonNova': this.updateNova(dt,swarm,cdOf(m.cd),m.speed,m.dps,m.maxR,m.poisonTime,m.poisonDps,m.chargeTime); break;
+      case 'freezeRing': this.updateFreezeRing(dt,swarm,cdOf(m.cd),m.speed,m.maxR,m.factor,m.time,m.chargeTime,m.dps); break;
+      case 'laserSweep': this.updateSweep(dt,swarm,cdOf(m.cd),m.duration,m.dps,m.width); break;
+      case 'laserBeam': this.updateLaserRegular(dt,swarm,nearby,m); break;
+      case 'chainLightning': this.updateChain(dt,swarm,cdOf(m.cd),m.dmg,m.jumps,m.radius); break;
+      case 'seekerBarrage': this.fireSeekerBarrage(dt,cdOf(m.cd),nearby,m.dmg,m.projSpd,m.count,m.turn); break;
+      case 'vortexPull': this.updateVortex(dt,swarm,nearby,m); break;
+      case 'mortarShells': this.updateMortarShells(dt,swarm,cdOf(m.cd),m.dmg,m.radius,m.flightTime,nearby); break;
+      case 'railgunBeam': this.updateRailgun(dt,swarm,nearby,m); break;
+      case 'magmaField': this.updateMagma(dt,swarm,nearby,rr,m); break;
+      case 'cloakDecloak': this.updatePhantom(dt,swarm,nearby,rr,m); break;
+      case 'spikeBurst': this.updateSpikeBurst(dt,cdOf(m.cd),m.count,m.dmg,m.projSpd); break;
+      case 'missileVolley': this.updateMissileVolley(dt,cdOf(m.cd),m.count,m.dmg,m.projSpd,m.turn); break;
+      case 'groundSlam': this.updateGroundSlam(dt,swarm,cdOf(m.cd),m.width,m.dmg,m.length,m.chargeTime); break;
+      case 'orbitingBlades': this.updateOrbitingBlades(dt,swarm,m.radius,m.dps,m.rotSpeed); break;
+      case 'summonAdds': this.updateSummonAdds(dt,cdOf(m.cd),m.maxAlive,m.types); break;
+      case 'teleportStrike': this.updateTeleportStrike(dt,swarm,cdOf(m.cd),m.dmg,m.radius,m.chargeTime); break;
+    }
+  }
+  runModules(dt,swarm,nearby,rate){
+    for(let i=0;i<this.def.modules.length;i++) this.runModule(this.def.modules[i],dt,swarm,nearby,rate);
+  }
   updateAbility(dt,swarm,nearby){
     const rate=this.baseFireRate*(nearby.length>18?0.7:1);
     this.fireCd-=dt;
     const def=this.def;
+    if(def.modules){ this.runModules(dt,swarm,nearby,rate); return; }
     switch(this.etype){
       case 'turret': this.fireBasic(rate,nearby,def.dmg,def.projSpd,'basic'); break;
       case 'spire': {
@@ -2235,8 +2687,8 @@ class Stronghold{
       case 'laser_boss': this.fireBasic(rate,nearby,def.dmg,def.projSpd,'basic'); this.updateSweep(dt,swarm,def.sweepCd,def.sweepDuration,def.sweepDps,def.sweepWidth); break;
       case 'apex': this.updateApex(dt,swarm,nearby); break;
       case 'hive_queen': this.fireSeekerBarrage(dt,def.seekerCd,nearby,def.dmg,def.projSpd,def.seekerCount,def.seekerTurn); this.updatePulse(dt,swarm,9,190,10,260,1.3); break;
-      case 'glacier_colossus': this.fireBasic(rate,nearby,def.dmg,def.projSpd,'ice'); this.updateFreezeRing(dt,swarm,def.freezeCd,def.freezeSpeed,def.freezeMaxR,def.freezeFactor,def.freezeTime,def.freezeChargeTime); break;
-      case 'tesla_titan': this.fireBasic(rate*0.7,nearby,def.dmg,def.projSpd,'basic'); this.updateChain(dt,swarm,def.chainCd,def.chainDmg,def.chainJumps,def.chainRadius); break;
+      case 'glacier_colossus': this.fireBasic(rate,nearby,def.dmg,def.projSpd,'ice'); this.updateFreezeRing(dt,swarm,def.freezeCd,def.freezeSpeed,def.freezeMaxR,def.freezeFactor,def.freezeTime,def.freezeChargeTime,def.freezeDps); break;
+      case 'tesla_titan': this.fireBasic(rate*0.85,nearby,def.dmg,def.projSpd,'basic'); this.updateChain(dt,swarm,def.chainCd,def.chainDmg,def.chainJumps,def.chainRadius); break;
       case 'phantom_king': this.updatePhantom(dt,swarm,nearby,rate,def); break;
       case 'railgun_dread': this.updateRailgun(dt,swarm,nearby,def); this.fireBasic(rate*1.4,nearby,14,180,'basic'); break;
       case 'magma_behemoth': this.updateMagma(dt,swarm,nearby,rate,def); break;
@@ -2268,16 +2720,14 @@ class Stronghold{
     this.hitFlash=Math.max(0,this.hitFlash-dt*4.5);
     this.hitSoundCd-=dt;
 
-    let nearby=[];
-    for(const u of swarm.units){ if(Math.hypot(u.x-this.x,u.y-this.y)<this.range) nearby.push(u); }
+    const nearby=swarm.grid.query(this.x,this.y,this.range);
 
     this.updateAbility(dt,swarm,nearby);
 
     for(let i=this.projectiles.length-1;i>=0;i--){
       const p=this.projectiles[i];
       if(p.kind==='seeker' && swarm.units.length>0){
-        let best=null,bestD=Infinity;
-        for(const u of swarm.units){ const d=Math.hypot(u.x-p.x,u.y-p.y); if(d<bestD){bestD=d;best=u;} }
+        const best=swarm.grid.nearest(p.x,p.y,2000);
         if(best){
           const spd=Math.hypot(p.vx,p.vy)||1;
           const wantAng=Math.atan2(best.y-p.y,best.x-p.x);
@@ -2292,7 +2742,8 @@ class Stronghold{
       }
       p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
       let hit=false;
-      for(const u of swarm.units){
+      const cand=swarm.grid.query(p.x,p.y,24);
+      for(const u of cand){
         if(Math.hypot(u.x-p.x,u.y-p.y)<CASTES[u.caste].size+4){ hit=true; break; }
       }
       if(hit){
@@ -2312,18 +2763,15 @@ class Stronghold{
 
     let dps=0;
     if(!this.invulnerable){
-      const auraUnits=swarm.units.filter(c=>CASTES[c.caste].auraRadius);
-      for(const u of swarm.units){
-        if(Math.hypot(u.x-this.x,u.y-this.y)>=this.attackRadius) continue;
+      const touching=swarm.grid.query(this.x,this.y,this.attackRadius);
+      const dmgM=dmgMult(), hpM=healthMult();
+      for(const u of touching){
         const ud=CASTES[u.caste];
-        let unitDps=ud.dps*dmgMult();
-        if(auraUnits.length){
-          let auraBonus=0;
-          for(const c of auraUnits){ const cd=CASTES[c.caste]; if(c!==u && Math.hypot(c.x-u.x,c.y-u.y)<cd.auraRadius) auraBonus+=cd.auraBoost; }
-          unitDps*=(1+auraBonus);
-        }
+        let unitDps=ud.dps*dmgM;
+        const auraBonus=swarm.auraBonusFor(u);
+        if(auraBonus>0) unitDps*=(1+auraBonus);
         dps+=unitDps;
-        if(ud.lifesteal) u.health=Math.min(ud.health*healthMult(), u.health+unitDps*ud.lifesteal*dt);
+        if(ud.lifesteal) u.health=Math.min(ud.health*hpM, u.health+unitDps*ud.lifesteal*dt);
       }
     }
     if(dps>0){
@@ -2371,7 +2819,9 @@ class Stronghold{
     const coreColor=dmgRatio<0.35?'#E8495A':(this.boss?def.color:'#9FF0E3');
 
     if(q.glow){ ctx.shadowColor=dmgRatio<0.35?'#E8495A':(this.boss?def.color:'#6B7A94'); ctx.shadowBlur=this.boss?20:14; }
-    const cloakAlpha=this.cloakState==='cloaked'?0.3:1;
+    let cloakAlpha=this.cloakState==='cloaked'?0.3:1;
+    if(this.teleState==='vanishing') cloakAlpha*=Math.max(0.15,this.teleChargeT/(this.teleChargeDur||0.6));
+    else if(this.teleState==='arriving') cloakAlpha*=0.15+0.85*(1-Math.max(0,this.teleChargeT)/(this.teleChargeDur||0.3));
     ctx.globalAlpha=cloakAlpha;
 
     if(shape==='spire'){
@@ -2642,6 +3092,304 @@ class Stronghold{
       }
       ctx.closePath();
       ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    } else if(shape==='sentinel'){
+      ctx.beginPath();
+      ctx.moveTo(0,-size*1.25); ctx.lineTo(size*0.55,-size*0.7); ctx.lineTo(size*0.62,size*0.55);
+      ctx.lineTo(size*0.28,size*1.05); ctx.lineTo(-size*0.28,size*1.05); ctx.lineTo(-size*0.62,size*0.55);
+      ctx.lineTo(-size*0.55,-size*0.7); ctx.closePath();
+      const g=ctx.createLinearGradient(0,-size*1.25,0,size*1.05);
+      g.addColorStop(0,def.light); g.addColorStop(0.55,def.color); g.addColorStop(1,'rgba(0,0,0,0.35)');
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1.4; ctx.stroke();
+      [-1,1].forEach(side=>{
+        ctx.save(); ctx.scale(side,1);
+        ctx.beginPath();
+        ctx.moveTo(size*0.5,-size*0.55); ctx.lineTo(size*1.15,-size*0.28); ctx.lineTo(size*0.95,size*0.22); ctx.lineTo(size*0.48,size*0.05);
+        ctx.closePath();
+        ctx.fillStyle=def.color; ctx.globalAlpha=0.92; ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1; ctx.stroke();
+        ctx.restore();
+      });
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.65+Math.sin(this.pulsePhase*2)*0.3;
+      ctx.fillRect(-size*0.32,-size*0.42,size*0.64,size*0.13);
+      ctx.globalAlpha=1;
+    } else if(shape==='carapace'){
+      ctx.beginPath(); ctx.ellipse(0,size*0.05,size*0.95,size*0.72,0,0,Math.PI*2);
+      const g=ctx.createRadialGradient(-size*.25,-size*.35,0,0,0,size*1.05);
+      g.addColorStop(0,def.light); g.addColorStop(0.6,def.color); g.addColorStop(1,'rgba(0,0,0,.35)');
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1.3; ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.lineWidth=1.2;
+      for(let seg=-2;seg<=2;seg++){ ctx.beginPath(); ctx.moveTo(seg*size*0.28,-size*0.55); ctx.lineTo(seg*size*0.22,size*0.5); ctx.stroke(); }
+      [-1,1].forEach(side=>{
+        ctx.save(); ctx.scale(side,1);
+        ctx.beginPath();
+        ctx.moveTo(size*0.7,-size*0.2);
+        ctx.quadraticCurveTo(size*1.35,-size*0.5,size*1.3,-size*0.02+Math.sin(this.pulsePhase+side)*4);
+        ctx.quadraticCurveTo(size*1.1,size*0.1,size*0.7,size*0.05);
+        ctx.closePath();
+        ctx.fillStyle=def.color; ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1; ctx.stroke();
+        ctx.restore();
+      });
+    } else if(shape==='coreArmor'){
+      ctx.save(); ctx.rotate(this.pulsePhase*0.5);
+      const plates=8;
+      for(let pI=0;pI<plates;pI++){
+        const a0=(pI/plates)*Math.PI*2, a1=a0+Math.PI*2/plates*0.72;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,size*1.05,a0,a1); ctx.closePath();
+        ctx.fillStyle=pI%2===0?def.color:def.light; ctx.globalAlpha=0.88; ctx.fill();
+      }
+      ctx.globalAlpha=1; ctx.restore();
+      ctx.beginPath(); ctx.arc(0,0,size*0.55,0,Math.PI*2);
+      const g2=ctx.createRadialGradient(0,0,0,0,0,size*0.55);
+      g2.addColorStop(0,'#ffffff'); g2.addColorStop(0.4,def.light); g2.addColorStop(1,def.color);
+      ctx.fillStyle=g2; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.4)'; ctx.lineWidth=1.6; ctx.stroke();
+    } else if(shape==='serpent'){
+      const segs=this.boss?9:6;
+      for(let sI=segs;sI>=0;sI--){
+        const f=sI/segs;
+        const wob=Math.sin(this.pulsePhase*1.6+sI*0.8)*size*0.22;
+        const sx=(f-0.5)*size*2.1, sy=wob*(1-f*0.3);
+        const r=size*(0.32+0.4*(1-f));
+        ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
+        const g=ctx.createRadialGradient(sx-r*.3,sy-r*.3,0,sx,sy,r);
+        g.addColorStop(0,def.light); g.addColorStop(1,def.color);
+        ctx.fillStyle=g; ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1; ctx.stroke();
+      }
+      const headY=Math.sin(this.pulsePhase*1.6)*size*0.22;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(-size*1.23,headY-size*0.12,size*0.09,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-size*1.23,headY+size*0.12,size*0.09,0,Math.PI*2); ctx.fill();
+    } else if(shape==='obelisk'){
+      ctx.beginPath();
+      ctx.moveTo(-size*0.42,size*1.05); ctx.lineTo(-size*0.5,-size*0.6); ctx.lineTo(0,-size*1.3);
+      ctx.lineTo(size*0.5,-size*0.6); ctx.lineTo(size*0.42,size*1.05); ctx.closePath();
+      const g=ctx.createLinearGradient(-size*0.5,-size*1.3,size*0.5,size*1.05);
+      g.addColorStop(0,def.color); g.addColorStop(0.5,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.strokeStyle=def.light; ctx.lineWidth=1.2; ctx.globalAlpha=0.55+Math.sin(this.pulsePhase*2)*0.3;
+      for(let rI=0;rI<3;rI++){ const ry=-size*0.7+rI*size*0.6; ctx.beginPath(); ctx.moveTo(-size*0.32,ry); ctx.lineTo(size*0.32,ry); ctx.stroke(); }
+      ctx.globalAlpha=1;
+      const shards=3;
+      for(let sh=0;sh<shards;sh++){
+        const a=this.pulsePhase*0.8+sh*(Math.PI*2/shards);
+        const ox=Math.cos(a)*size*1.35, oy=Math.sin(a)*size*0.5-size*0.2;
+        ctx.save(); ctx.translate(ox,oy); ctx.rotate(a);
+        ctx.fillStyle=def.light;
+        ctx.beginPath(); ctx.moveTo(0,-size*0.16); ctx.lineTo(size*0.1,0); ctx.lineTo(0,size*0.16); ctx.lineTo(-size*0.1,0); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    } else if(shape==='seraph'){
+      ctx.beginPath(); ctx.ellipse(0,0,size*0.4,size*0.62,0,0,Math.PI*2);
+      const g=ctx.createLinearGradient(0,-size*0.6,0,size*0.6);
+      g.addColorStop(0,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.2; ctx.stroke();
+      [-1,1].forEach(side=>{
+        for(let layer=0;layer<3;layer++){
+          ctx.save(); ctx.scale(side,1);
+          const spread=0.35+layer*0.32;
+          ctx.beginPath();
+          ctx.moveTo(size*0.15,-size*0.1-layer*size*0.05);
+          ctx.quadraticCurveTo(size*(0.7+layer*0.35),-size*(0.3+spread), size*(1.3+layer*0.4), -size*(0.15+layer*0.22));
+          ctx.quadraticCurveTo(size*(0.8+layer*0.3), -size*0.05, size*0.2,size*0.08+layer*size*0.04);
+          ctx.closePath();
+          ctx.fillStyle=layer%2===0?def.color:def.light;
+          ctx.globalAlpha=0.85-layer*0.12;
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+      ctx.globalAlpha=1;
+    } else if(shape==='kraken'){
+      ctx.beginPath(); ctx.arc(0,-size*0.1,size*0.62,0,Math.PI*2);
+      const g=ctx.createRadialGradient(-size*.2,-size*.3,0,0,0,size*0.7);
+      g.addColorStop(0,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1.2; ctx.stroke();
+      const arms=this.boss?7:5;
+      for(let aI=0;aI<arms;aI++){
+        const baseA=(aI/arms)*Math.PI*2+Math.PI/2;
+        const wob=Math.sin(this.pulsePhase*1.4+aI)*0.3;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(baseA)*size*0.5,Math.sin(baseA)*size*0.5-size*0.1);
+        ctx.quadraticCurveTo(
+          Math.cos(baseA+wob)*size*1.1, Math.sin(baseA+wob)*size*1.1-size*0.1,
+          Math.cos(baseA+wob*1.8)*size*1.5, Math.sin(baseA+wob*1.8)*size*1.5-size*0.1
+        );
+        ctx.strokeStyle=aI%2===0?def.color:def.light;
+        ctx.lineWidth=size*0.22; ctx.lineCap='round';
+        ctx.stroke();
+      }
+    } else if(shape==='golemCore'){
+      ctx.beginPath();
+      ctx.moveTo(-size*0.6,-size*1.0); ctx.lineTo(size*0.6,-size*1.0);
+      ctx.lineTo(size*0.72,size*0.2); ctx.lineTo(size*0.4,size*1.0);
+      ctx.lineTo(-size*0.4,size*1.0); ctx.lineTo(-size*0.72,size*0.2);
+      ctx.closePath();
+      const g=ctx.createLinearGradient(0,-size,0,size);
+      g.addColorStop(0,def.light); g.addColorStop(0.5,def.color); g.addColorStop(1,'#20242e');
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=1.6; ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-size*0.65,-size*0.25); ctx.lineTo(size*0.65,-size*0.25); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-size*0.55,size*0.35); ctx.lineTo(size*0.55,size*0.35); ctx.stroke();
+      ctx.fillStyle=def.light; ctx.globalAlpha=0.6+Math.sin(this.pulsePhase*2.4)*0.35;
+      [[-size*0.4,-size*0.25],[size*0.4,-size*0.25],[0,size*0.35]].forEach(p=>{
+        ctx.beginPath(); ctx.arc(p[0],p[1],size*0.1,0,Math.PI*2); ctx.fill();
+      });
+      ctx.globalAlpha=1;
+    } else if(shape==='nebulaCore'){
+      for(let layer=3;layer>=0;layer--){
+        ctx.save(); ctx.rotate(this.pulsePhase*(layer%2===0?0.4:-0.4));
+        ctx.beginPath(); ctx.ellipse(0,0,size*(0.5+layer*0.2),size*(0.32+layer*0.14),layer*0.5,0,Math.PI*2);
+        ctx.fillStyle=layer%2===0?def.color:def.light;
+        ctx.globalAlpha=0.28+0.1*(3-layer);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(0,0,size*0.3,0,Math.PI*2);
+      const g=ctx.createRadialGradient(0,0,0,0,0,size*0.3);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(1,def.light);
+      ctx.fillStyle=g; ctx.fill();
+      const debris=4;
+      for(let dI=0;dI<debris;dI++){
+        const a=this.pulsePhase*1.1+dI*(Math.PI*2/debris);
+        const dx=Math.cos(a)*size*1.15, dy=Math.sin(a)*size*0.75;
+        ctx.beginPath(); ctx.arc(dx,dy,size*0.09,0,Math.PI*2); ctx.fillStyle=def.light; ctx.fill();
+      }
+    } else if(shape==='warhulk'){
+      ctx.beginPath();
+      ctx.moveTo(size*1.2,0); ctx.lineTo(size*0.5,-size*0.75); ctx.lineTo(-size*0.9,-size*0.6);
+      ctx.lineTo(-size*1.15,0); ctx.lineTo(-size*0.9,size*0.6); ctx.lineTo(size*0.5,size*0.75);
+      ctx.closePath();
+      const g=ctx.createLinearGradient(-size,0,size*1.2,0);
+      g.addColorStop(0,def.color); g.addColorStop(0.5,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=1.4; ctx.stroke();
+      [[-size*0.3,-size*0.28],[-size*0.3,size*0.28],[size*0.2,0]].forEach(p=>{
+        ctx.beginPath(); ctx.arc(p[0],p[1],size*0.18,0,Math.PI*2);
+        ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1; ctx.stroke();
+      });
+    } else if(shape==='arachnid'){
+      const legs=this.boss?8:6;
+      for(let lI=0;lI<legs;lI++){
+        const a=(lI/legs)*Math.PI*2+this.pulsePhase*0.15;
+        const kneeA=a+(lI%2===0?0.3:-0.3);
+        const kx=Math.cos(a)*size*0.85, ky=Math.sin(a)*size*0.85;
+        const ex=kx+Math.cos(kneeA)*size*0.65, ey=ky+Math.sin(kneeA)*size*0.65;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(kx,ky); ctx.lineTo(ex,ey);
+        ctx.strokeStyle=def.color; ctx.lineWidth=size*0.13; ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(0,0,size*0.62,0,Math.PI*2);
+      const g=ctx.createRadialGradient(-size*.2,-size*.2,0,0,0,size*0.62);
+      g.addColorStop(0,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1.3; ctx.stroke();
+    } else if(shape==='phoenixCore'){
+      ctx.beginPath();
+      ctx.moveTo(0,-size*1.15); ctx.quadraticCurveTo(size*0.35,-size*0.3,0,size*0.9);
+      ctx.quadraticCurveTo(-size*0.35,-size*0.3,0,-size*1.15);
+      const g=ctx.createLinearGradient(0,-size*1.15,0,size*0.9);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.4,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      [-1,1].forEach(side=>{
+        for(let f=0;f<4;f++){
+          const fa=0.15+f*0.24;
+          ctx.save(); ctx.scale(side,1);
+          ctx.beginPath();
+          ctx.moveTo(size*0.05,-size*0.2+f*size*0.08);
+          ctx.quadraticCurveTo(size*(0.6+f*0.22),-size*(0.5-fa*0.3), size*(1.05+f*0.25),size*(fa*0.5-0.1));
+          ctx.quadraticCurveTo(size*(0.55+f*0.2), size*(0.05+fa*0.15), size*0.08,size*(0.05+f*0.09));
+          ctx.closePath();
+          ctx.fillStyle=f%2===0?def.color:def.light;
+          ctx.globalAlpha=0.82-f*0.1;
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+      ctx.globalAlpha=1;
+    } else if(shape==='voidMaw'){
+      ctx.beginPath(); ctx.arc(0,0,size*0.85,0,Math.PI*2);
+      const g=ctx.createRadialGradient(0,0,size*0.2,0,0,size*0.85);
+      g.addColorStop(0,'#05060c'); g.addColorStop(0.7,def.color); g.addColorStop(1,def.light);
+      ctx.fillStyle=g; ctx.fill();
+      const teeth=this.boss?14:10;
+      for(let tI=0;tI<teeth;tI++){
+        const a=(tI/teeth)*Math.PI*2;
+        const r0=size*0.85, r1=size*(1.08+(tI%2)*0.1);
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);
+        ctx.lineTo(Math.cos(a+0.08)*r1,Math.sin(a+0.08)*r1);
+        ctx.lineTo(Math.cos(a+0.16)*r0,Math.sin(a+0.16)*r0);
+        ctx.closePath();
+        ctx.fillStyle=def.light; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(0,0,size*0.4,0,Math.PI*2);
+      ctx.fillStyle='#000'; ctx.globalAlpha=0.75; ctx.fill(); ctx.globalAlpha=1;
+    } else if(shape==='crownColossus'){
+      ctx.beginPath();
+      ctx.moveTo(-size*1.1,size*0.5); ctx.lineTo(-size*1.1,-size*0.1); ctx.lineTo(-size*0.7,size*0.15);
+      ctx.lineTo(-size*0.35,-size*0.55); ctx.lineTo(0,size*0.05); ctx.lineTo(size*0.35,-size*0.55);
+      ctx.lineTo(size*0.7,size*0.15); ctx.lineTo(size*1.1,-size*0.1); ctx.lineTo(size*1.1,size*0.5);
+      ctx.closePath();
+      const g=ctx.createLinearGradient(0,-size*0.55,0,size*0.5);
+      g.addColorStop(0,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.5; ctx.stroke();
+      [[-size*0.35,-size*0.3],[0,-size*0.05],[size*0.35,-size*0.3]].forEach((p,gi)=>{
+        ctx.beginPath(); ctx.arc(p[0],p[1],size*0.14,0,Math.PI*2);
+        ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.6+Math.sin(this.pulsePhase*2+gi)*0.3; ctx.fill();
+        ctx.globalAlpha=1;
+      });
+    } else if(shape==='sovereign'){
+      [-1,1].forEach(side=>{
+        for(let layer=0;layer<4;layer++){
+          ctx.save(); ctx.scale(side,1);
+          ctx.beginPath();
+          ctx.moveTo(size*0.1,-size*0.15-layer*size*0.04);
+          ctx.quadraticCurveTo(size*(0.8+layer*0.4),-size*(0.4+layer*0.28), size*(1.5+layer*0.45), -size*(0.1+layer*0.24));
+          ctx.quadraticCurveTo(size*(0.9+layer*0.35), size*0.02, size*0.15,size*0.1+layer*size*0.04);
+          ctx.closePath();
+          ctx.fillStyle=layer%2===0?def.color:def.light;
+          ctx.globalAlpha=0.8-layer*0.1;
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+      ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(0,0,size*0.68,0,Math.PI*2);
+      const g=ctx.createRadialGradient(-size*.2,-size*.25,0,0,0,size*0.7);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.35,def.light); g.addColorStop(1,def.color);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.4)'; ctx.lineWidth=1.8; ctx.stroke();
+      ctx.save(); ctx.translate(0,-size*0.62);
+      ctx.beginPath();
+      ctx.moveTo(-size*0.5,size*0.32); ctx.lineTo(-size*0.5,-size*0.02); ctx.lineTo(-size*0.28,size*0.14);
+      ctx.lineTo(0,-size*0.32); ctx.lineTo(size*0.28,size*0.14); ctx.lineTo(size*0.5,-size*0.02); ctx.lineTo(size*0.5,size*0.32);
+      ctx.closePath();
+      ctx.fillStyle=def.light; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.4)'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(0,0,size*0.24,0,Math.PI*2);
+      ctx.fillStyle='#fff'; ctx.globalAlpha=0.7+Math.sin(this.pulsePhase*2.6)*0.3; ctx.fill(); ctx.globalAlpha=1;
+      const shards=6;
+      for(let sI=0;sI<shards;sI++){
+        const a=this.pulsePhase*0.6+sI*(Math.PI*2/shards);
+        const ox=Math.cos(a)*size*1.35, oy=Math.sin(a)*size*1.05;
+        ctx.save(); ctx.translate(ox,oy); ctx.rotate(a+this.pulsePhase);
+        ctx.fillStyle=sI%2===0?def.color:def.light;
+        ctx.beginPath(); ctx.moveTo(0,-size*0.16); ctx.lineTo(size*0.11,0); ctx.lineTo(0,size*0.16); ctx.lineTo(-size*0.11,0); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
     } else {
       ctx.rotate(Math.PI/4);
       const g=ctx.createLinearGradient(-size,-size,size,size);
@@ -2804,6 +3552,14 @@ class Stronghold{
       }
       ctx.restore();
     }
+    if(this.chainCharging){
+      const prog=1-(this.chainChargeT/(this.chainChargeDur||0.55));
+      ctx.save();
+      ctx.strokeStyle='#C4F7FF'; ctx.globalAlpha=0.35+prog*0.5; ctx.lineWidth=2+prog*3;
+      if(q.glow){ ctx.shadowColor='#66E0F2'; ctx.shadowBlur=14; }
+      ctx.beginPath(); ctx.arc(this.x,this.y,(this.boss?46:34)+prog*10,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
     if(this.chainVisualT>0 && this.chainVisual.length>1){
       ctx.save();
       ctx.strokeStyle='#C4F7FF'; ctx.globalAlpha=Math.min(1,this.chainVisualT/0.22)*0.9; ctx.lineWidth=2.4;
@@ -2826,6 +3582,44 @@ class Stronghold{
       const lx=sh.x0+(sh.tx-sh.x0)*prog, ly=sh.y0+(sh.ty-sh.y0)*prog-Math.sin(prog*Math.PI)*70;
       ctx.globalAlpha=1; ctx.fillStyle=def.color;
       ctx.beginPath(); ctx.arc(lx,ly,5,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    if(this.hasModule('groundSlam')){
+      const gm=this.getModule('groundSlam');
+      const len=gm.length||this.range*1.7;
+      if(this.slamState==='charging'){
+        const prog=1-(this.slamChargeT/(this.slamChargeDur||1));
+        ctx.save();
+        ctx.strokeStyle='#FFD9A0'; ctx.globalAlpha=0.22+prog*0.45; ctx.lineWidth=(gm.width||18)*2;
+        ctx.beginPath(); ctx.moveTo(this.x,this.y);
+        ctx.lineTo(this.x+Math.cos(this.slamAngle)*len, this.y+Math.sin(this.slamAngle)*len);
+        ctx.stroke(); ctx.restore();
+      } else if(this.slamProgress>0){
+        ctx.save();
+        ctx.strokeStyle='#ffffff'; ctx.globalAlpha=Math.min(1,this.slamProgress/0.28)*0.75; ctx.lineWidth=(gm.width||18)*1.6;
+        if(q.glow){ ctx.shadowColor='#FFD9A0'; ctx.shadowBlur=16; }
+        ctx.beginPath(); ctx.moveTo(this.x,this.y);
+        ctx.lineTo(this.x+Math.cos(this.slamAngle)*len, this.y+Math.sin(this.slamAngle)*len);
+        ctx.stroke(); ctx.restore();
+      }
+    }
+    if(this.hasModule('orbitingBlades')){
+      const bm=this.getModule('orbitingBlades');
+      const bladeCount=bm.count||5;
+      ctx.save();
+      ctx.translate(this.x,this.y);
+      for(let bIdx=0;bIdx<bladeCount;bIdx++){
+        const a=this.bladeAngle+(bIdx/bladeCount)*Math.PI*2;
+        const bx=Math.cos(a)*bm.radius, by=Math.sin(a)*bm.radius;
+        ctx.save();
+        ctx.translate(bx,by); ctx.rotate(a*2.4);
+        ctx.fillStyle=def.light;
+        if(q.glow){ ctx.shadowColor=def.color; ctx.shadowBlur=8; }
+        ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-5,5); ctx.lineTo(-2,0); ctx.lineTo(-5,-5); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+      ctx.beginPath(); ctx.arc(0,0,bm.radius,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
       ctx.restore();
     }
     for(const fp of this.firePatches){
@@ -3136,7 +3930,7 @@ function startRun(mode, idx){
     // Early stages get a temporary fire-rate cushion so new players have room to dodge
     // while the swarm and unlocks are still small; fades out completely by stage 10.
     const easeMul = stageIndex<10 ? 1+(9-stageIndex)*0.05 : 1;
-    for(const s of cfg.strongholds) strongholds.push(new Stronghold(s.fx*W, s.fy*H, s.hp, s.etype, s.boss, easeMul));
+    for(const s of cfg.strongholds) strongholds.push(new Stronghold(s.fx*W, s.fy*H, s.hp, s.etype, s.boss, easeMul, s.eliteMul));
     for(let i=0;i<cfg.nodes;i++){
       const caste=SAVE.unlockedCastes[Math.floor(Math.random()*SAVE.unlockedCastes.length)];
       nodes.push(new ResNode(rand(W*0.12,W*0.88), rand(H*0.08,H*0.62), caste));
@@ -3164,7 +3958,7 @@ function startRun(mode, idx){
 function spawnBossRushRound(){
   bossRushRound++;
   strongholds=[];
-  const etype=BOSS_ORDER[(bossRushRound-1)%BOSS_ORDER.length];
+  const etype=FULL_BOSS_ROSTER_KEYS[(bossRushRound-1)%FULL_BOSS_ROSTER_KEYS.length];
   const hp=Math.round(240*Math.pow(1.16,bossRushRound-1));
   strongholds.push(new Stronghold(W*0.5,H*0.26,hp,etype,true));
   showBossToast(ENEMY_ALL[etype].name);
@@ -3274,7 +4068,7 @@ function spawnWave(){
   if(isBossWave){
     // Boss waves always spawn a single, solitary boss.
     const bossIdx=Math.max(0,Math.floor(endlessWave/4)-1);
-    const etype=BOSS_ORDER[bossIdx%BOSS_ORDER.length];
+    const etype=FULL_BOSS_ROSTER_KEYS[bossIdx%FULL_BOSS_ROSTER_KEYS.length];
     const hp=(90+endlessWave*26)*1.9;
     strongholds.push(new Stronghold(W*0.5, H*0.22, hp, etype, true));
     showBossToast(ENEMY_ALL[etype].name);
@@ -3310,7 +4104,8 @@ function update(dt){
 
   for(const n of nodes){
     if(n.collected) continue;
-    for(const u of swarm.units){
+    const near=swarm.grid.query(n.x,n.y,n.r+18);
+    for(const u of near){
       if(Math.hypot(u.x-n.x,u.y-n.y)<CASTES[u.caste].size+n.r){
         n.collected=true;
         particles.emit(n.x,n.y,CASTES[n.caste].light,10);
@@ -3342,7 +4137,8 @@ function update(dt){
     c.life-=dt;
     if(c.life<=0){ c.collected=true; continue; }
     const magnetActive=tempBuffs.magnet>0;
-    for(const u of swarm.units){
+    const near=magnetActive?swarm.units:swarm.grid.query(c.x,c.y,c.r+22);
+    for(const u of near){
       if(magnetActive || Math.hypot(u.x-c.x,u.y-c.y)<CASTES[u.caste].size+c.r+4){
         c.collected=true;
         const amt=Math.round(c.amount*coinMult());
@@ -3366,7 +4162,8 @@ function update(dt){
     if(p.collected) continue;
     p.life-=dt;
     if(p.life<=0){ p.collected=true; continue; }
-    for(const u of swarm.units){
+    const nearP=swarm.grid.query(p.x,p.y,p.r+22);
+    for(const u of nearP){
       if(Math.hypot(u.x-p.x,u.y-p.y)<CASTES[u.caste].size+p.r+4){
         p.collected=true;
         POWERUP_TYPES[p.type].apply(p.x,p.y);
@@ -3388,7 +4185,7 @@ function update(dt){
     const u=swarm.units[i];
     if(u.temp){
       u.tempLife-=dt;
-      if(u.tempLife<=0) swarm.units.splice(i,1);
+      if(u.tempLife<=0) swarm.removeUnit(u);
     }
   }
 
@@ -3480,7 +4277,7 @@ function onStageComplete(){
   if(cfg.boss && cfg.strongholds[0]){
     const bossKey=cfg.strongholds[0].etype;
     if(bossKey==='warlord' && runUnitsLost===0) unlockAchievementSkin('vanguard');
-    if(bossKey==='overlord') unlockAchievementSkin('eternal');
+    if(bossKey===FINAL_BOSS_KEY) unlockAchievementSkin('eternal');
   }
   Audio_.play('win'); vibrate(25);
   document.getElementById('completeCoins').textContent='+'+toFa(reward);
