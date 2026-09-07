@@ -453,7 +453,7 @@ const ENEMY_DEFS = {
              ability:'شلیک سه‌تیر پخشی در یک زمان' },
   ice:     { name:'یخ‌افکن',     color:'#7FD4F0', light:'#E4FBFF', shape:'crystal', dmg:9,  projSpd:165, fireMul:1,
              slowFactor:0.38, slowTime:2.4, ability:'تیر یخی که لشکر را کند می‌کند' },
-  poison:  { name:'سم‌پاش',      color:'#7FE07A', light:'#C8F7B0', shape:'blob',    dmg:6,  projSpd:150, fireMul:0.85,
+  poison:  { name:'سم‌پاش',      color:'#7FE07A', light:'#C8F7B0', shape:'blob',    dmg:6,  projSpd:150, fireMul:1,
              poisonDps:8, poisonTime:3.2, splashRadius:34, ability:'ابر سمی که به‌مرور آسیب می‌زند' },
   fire:    { name:'آتش‌افکن',    color:'#F2884B', light:'#FFC98A', shape:'furnace', dmg:14, projSpd:175, fireMul:1,
              burnDps:10, burnTime:2.4, patchRadius:30, patchTime:3, ability:'گلوله‌ی آتشین که زمین را شعله‌ور می‌کند' },
@@ -462,7 +462,7 @@ const ENEMY_DEFS = {
              ability:'شارژ می‌شود سپس یک پرتوی لیزر ۲ ثانیه‌ای شلیک می‌کند' },
   shield:  { name:'سپربان',      color:'#5B8DEF', light:'#AFC7FA', shape:'orb',     dmg:18, projSpd:185, fireMul:1,
              shieldTime:2.2, shieldCd:4.2, shieldReduction:0.8, ability:'سپر دوره‌ای که بیشتر آسیب را خنثی می‌کند' },
-  vortex:  { name:'گرداب',       color:'#B98AE8', light:'#DBC0F7', shape:'spiral',  dmg:8,  projSpd:160, fireMul:0.9,
+  vortex:  { name:'گرداب',       color:'#B98AE8', light:'#DBC0F7', shape:'spiral',  dmg:8,  projSpd:160, fireMul:1,
              pullTime:1.8, pullRadius:170, pullSpeed:78, burstRadius:70, burstDmg:22, restCd:3.6,
              ability:'لشکر را به‌سمت خودش می‌کشد سپس منفجر می‌شود' },
   hive:    { name:'کندوی هجوم',   color:'#E0C24D', light:'#FBEBA0', shape:'hive',    dmg:11, projSpd:150, fireMul:1.05,
@@ -485,7 +485,7 @@ const ENEMY_DEFS = {
   glacier: { name:'یخبند',       color:'#9FE8F7', light:'#EAFCFF', shape:'iceberg', dmg:7,  projSpd:0, fireMul:1,
              freezeCd:8, freezeSpeed:190, freezeMaxR:200, freezeFactor:0.12, freezeTime:1.8, freezeChargeTime:1.0,
              ability:'موج یخی که لشکر اطراف را برای لحظه\u200cای منجمد می\u200cکند' },
-  magma:   { name:'گدازه\u200cافکن', color:'#F2532E', light:'#FFA36B', shape:'magma',   dmg:15, projSpd:170, fireMul:0.9,
+  magma:   { name:'گدازه\u200cافکن', color:'#F2532E', light:'#FFA36B', shape:'magma',   dmg:15, projSpd:170, fireMul:1,
              burnDps:9, burnTime:2.6, patchRadius:32, patchTime:2.2, magmaSpread:3, magmaCd:6,
              ability:'میدانی از گدازه\u200cی مشتعل در اطراف خود می\u200cسازد' },
   sentinel:{ name:'دیده\u200cبان', color:'#B7C4DE', light:'#EAF0FC', shape:'sentinel', fireMul:1,
@@ -536,7 +536,7 @@ const BOSS_DEFS = {
   apex:       { name:'نابودگر غایی', color:'#E8495A', light:'#FF9AA6', shape:'crystal', dmg:22, projSpd:210,
                 ability:'ترکیبی از موج ضربه، سم و لیزر چرخان' },
   hive_queen: { name:'ملکه\u200cی کندو', color:'#E0C24D', light:'#FBEBA0', shape:'hive', dmg:14, projSpd:170,
-                seekerTurn:6, seekerCount:5, seekerCd:2.1, pulseMaxR:260,
+                seekerTurn:6, seekerCount:5, seekerCd:3.2, pulseMaxR:260,
                 ability:'رگبار اسپورهای دنبال\u200cکننده\u200cی بی\u200cامان' },
   glacier_colossus:{ name:'غول یخی', color:'#9FE8F7', light:'#EAFCFF', shape:'iceberg', dmg:18, projSpd:175,
                 slowTime:2.4, slowFactor:0.4,
@@ -2002,7 +2002,7 @@ class Stronghold{
     this.boss=!!boss;
     this.range=this.boss?380:280; this.attackRadius=this.boss?56:42;
     this.fireCd=Math.random()*0.6;
-    this.baseFireRate=(this.boss?0.95:1.15)*(this.def.fireMul||1)*(easeMul||1);
+    this.baseFireRate=(this.boss?1.3:1.4)*(this.def.fireMul||1)*(easeMul||1);
     this.eliteMulInit=eliteMul||1;
     this.destroyed=false; this.shake=0; this.projectiles=[];
     this.hitFlash=0; this.hitSoundCd=0;
